@@ -324,15 +324,15 @@ function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setExtractedText(data.extracted_text);
         setFileToUpload(null);
         document.getElementById('questionsFileInput').value = '';
-        setExamMessage({ type: 'success', text: 'Questions text extracted successfully! Please review below and enter them manually.' });
+        setExamMessage({ type: 'success', text: data.message });
+        loadExamDetails(selectedExam); // Refresh lists automatically!
       } else {
-        setExamMessage({ type: 'danger', text: data.message || 'Extraction failed.' });
+        setExamMessage({ type: 'danger', text: data.message || 'Import failed.' });
       }
     } catch (err) {
-      setExamMessage({ type: 'danger', text: 'Error extracting questions.' });
+      setExamMessage({ type: 'danger', text: 'Error importing questions from file.' });
     }
   };
 
@@ -989,9 +989,9 @@ function AdminDashboard() {
 
               {/* Upload Questions File */}
               <div className="glass-card">
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>Extract Questions from Document</h3>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>Import Questions from Document</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                  Upload a PDF, Word (.docx) or Text (.txt) file containing examination questions to automatically extract and copy question texts.
+                  Upload a PDF, Word (.docx) or Text (.txt) file containing MCQs. The system will automatically parse and import them directly.
                 </p>
                 <form onSubmit={handleUploadQuestionsFile}>
                   <div className="form-group">
@@ -1006,22 +1006,9 @@ function AdminDashboard() {
                     />
                   </div>
                   <button type="submit" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}>
-                    📄 Extract Text
+                    📤 Parse & Import Questions
                   </button>
                 </form>
-
-                {extractedText && (
-                  <div style={{ marginTop: '1.5rem' }}>
-                    <label className="form-label">Extracted Text Preview:</label>
-                    <textarea
-                      className="form-input"
-                      rows="8"
-                      value={extractedText}
-                      readOnly
-                      style={{ fontSize: '0.82rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.3)', marginTop: '0.25rem' }}
-                    />
-                  </div>
-                )}
 
                 {examMessage.text && (
                   <div className={`badge badge-${examMessage.type}`} style={{ display: 'block', width: '100%', padding: '0.75rem', marginTop: '1.5rem', textAlign: 'center' }}>
