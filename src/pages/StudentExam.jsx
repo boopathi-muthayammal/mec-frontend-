@@ -24,13 +24,18 @@ function StudentExam({ examId }) {
 
   const MAX_WARNINGS = 1; // 2nd violation auto-submits
 
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
     if (!examId) {
       setError('No exam ID specified');
       setLoading(false);
       return;
     }
-    loadExamData();
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadExamData();
+    }
     return () => {
       clearInterval(timerIntervalRef.current);
       disableAntiCheat();

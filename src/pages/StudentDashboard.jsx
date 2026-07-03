@@ -170,6 +170,10 @@ function StudentDashboard() {
                       <div className="badge badge-success flex-center" style={{ padding: '0.65rem', borderRadius: '10px', fontSize: '0.88rem' }}>
                         Completed ✓
                       </div>
+                    ) : !exam.question_count ? (
+                      <div className="badge badge-danger flex-center" style={{ padding: '0.65rem', borderRadius: '10px', fontSize: '0.88rem', textTransform: 'none' }}>
+                        No questions added yet ⚠️
+                      </div>
                     ) : (
                       <button className="btn btn-success" style={{ width: '100%', justifyContent: 'center' }} onClick={() => openStartModal(exam.id)}>
                         Start Exam →
