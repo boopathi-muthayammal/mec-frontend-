@@ -14,11 +14,19 @@ function AdminDashboard() {
   const [filterSection, setFilterSection] = useState('');
   const [studentForm, setStudentForm] = useState({ roll_number: '', name: '', dob: '', year: 1, section: 'A' });
   const [csvFile, setCsvFile] = useState(null);
+  const [csvYear, setCsvYear] = useState(1);
+  const [csvSection, setCsvSection] = useState('A');
   const [studentMessage, setStudentMessage] = useState({ type: '', text: '' });
 
   // Exams Tab State
   const [exams, setExams] = useState([]);
-  const [examForm, setExamForm] = useState({ title: '', description: '', duration_minutes: 30 });
+  const [examForm, setExamForm] = useState({
+    title: '',
+    description: '',
+    duration_minutes: 30,
+    target_years: [1, 2, 3, 4],
+    target_sections: ['A', 'B', 'C', 'D', 'E']
+  });
   const [selectedExam, setSelectedExam] = useState(null); // When viewing questions for an exam
 
   // Question Management State
@@ -33,6 +41,7 @@ function AdminDashboard() {
     correct_option: 'A',
     marks: 1
   });
+  const [testCases, setTestCases] = useState([{ input: '', expected_output: '', is_public: true }]);
   const [fileToUpload, setFileToUpload] = useState(null);
   const [extractedText, setExtractedText] = useState('');
   const [examMessage, setExamMessage] = useState({ type: '', text: '' });
@@ -139,6 +148,8 @@ function AdminDashboard() {
 
     const formData = new FormData();
     formData.append('file', csvFile);
+    formData.append('year', csvYear);
+    formData.append('section', csvSection);
 
     try {
       const res = await fetch('/api/admin/students/upload', {
@@ -198,7 +209,13 @@ function AdminDashboard() {
       const data = await res.json();
       if (data.success) {
         setExamMessage({ type: 'success', text: 'Exam created successfully!' });
-        setExamForm({ title: '', description: '', duration_minutes: 30 });
+        setExamForm({
+          title: '',
+          description: '',
+          duration_minutes: 30,
+          target_years: [1, 2, 3, 4],
+          target_sections: ['A', 'B', 'C', 'D', 'E']
+        });
         loadExams();
       } else {
         setExamMessage({ type: 'danger', text: data.message || 'Failed to create exam.' });
@@ -257,11 +274,17 @@ function AdminDashboard() {
   const handleAddQuestion = async (e) => {
     e.preventDefault();
     setExamMessage({ type: '', text: '' });
+
+    const payload = {
+      ...questionForm,
+      test_cases: questionForm.question_type === 'PROGRAM' ? testCases : []
+    };
+
     try {
       const res = await fetch(`/api/admin/exams/${selectedExam.id}/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(questionForm)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
@@ -276,6 +299,7 @@ function AdminDashboard() {
           correct_option: 'A',
           marks: 1
         });
+        setTestCases([{ input: '', expected_output: '', is_public: true }]);
         loadExamDetails(selectedExam);
       } else {
         setExamMessage({ type: 'danger', text: data.message || 'Failed to add question.' });
@@ -542,9 +566,32 @@ function AdminDashboard() {
               <div className="glass-card">
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Bulk CSV Upload</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                  Select a CSV file containing: <strong>Roll Number, Name, DOB, Year, Section</strong> headers. DOB formats supported: DD-MM-YYYY, DD/MM/YYYY, or YYYY-MM-DD.
+                  Select a CSV file containing: <strong>Roll Number, Name, DOB</strong> headers. Select the target Year and Section below to assign to all imported records.
                 </p>
                 <form onSubmit={handleCsvUpload}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Assign Year</label>
+                      <select className="form-input" value={csvYear} onChange={(e) => setCsvYear(parseInt(e.target.value))}>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Assign Section</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={csvSection}
+                        onChange={(e) => setCsvSection(e.target.value)}
+                        placeholder="e.g. A"
+                        style={{ textTransform: 'uppercase' }}
+                        required
+                      />
+                    </div>
+                  </div>
                   <div className="form-group">
                     <label className="form-label">CSV File</label>
                     <input
@@ -666,17 +713,54 @@ function AdminDashboard() {
                     placeholder="Describe guidelines for this examination..."
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Duration (Minutes)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={examForm.duration_minutes}
-                    onChange={(e) => setExamForm({ ...examForm, duration_minutes: parseInt(e.target.value) || 0 })}
-                    placeholder="30"
-                    required
-                  />
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label">Target Year(s)</label>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                    {[1, 2, 3, 4].map(yr => {
+                      const isChecked = examForm.target_years.includes(yr);
+                      return (
+                        <label key={yr} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.88rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...examForm.target_years, yr]
+                                : examForm.target_years.filter(y => y !== yr);
+                              setExamForm({ ...examForm, target_years: updated });
+                            }}
+                          />
+                          {yr}{yr === 1 ? 'st' : yr === 2 ? 'nd' : yr === 3 ? 'rd' : 'th'}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label">Target Section(s)</label>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                    {['A', 'B', 'C', 'D', 'E'].map(sec => {
+                      const isChecked = examForm.target_sections.includes(sec);
+                      return (
+                        <label key={sec} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.88rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...examForm.target_sections, sec]
+                                : examForm.target_sections.filter(s => s !== sec);
+                              setExamForm({ ...examForm, target_sections: updated });
+                            }}
+                          />
+                          {sec}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}>
                   📝 Create Exam
                 </button>
@@ -709,9 +793,13 @@ function AdminDashboard() {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                       {exam.description || 'No description available.'}
                     </p>
-                    <div className="card-meta" style={{ marginBottom: '1.25rem' }}>
+                    <div className="card-meta" style={{ marginBottom: '0.75rem' }}>
                       <span>⏱️ {exam.duration_minutes} min</span>
                       <span>❓ {exam.question_count} questions</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div>🎯 <strong>Years:</strong> {exam.target_years ? exam.target_years.map(y => y === 1 ? '1st' : y === 2 ? '2nd' : y === 3 ? '3rd' : '4th').join(', ') : 'All'}</div>
+                      <div>🎯 <strong>Sections:</strong> {exam.target_sections ? exam.target_sections.join(', ') : 'All'}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <button className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => loadExamDetails(exam)}>
@@ -802,6 +890,84 @@ function AdminDashboard() {
                         </select>
                       </div>
                     </>
+                  )}
+
+                  {questionForm.question_type === 'PROGRAM' && (
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span>Test Cases</span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', gap: '0.25rem' }}
+                          onClick={() => setTestCases([...testCases, { input: '', expected_output: '', is_public: true }])}
+                        >
+                          ➕ Add Test Case
+                        </button>
+                      </label>
+                      {testCases.map((tc, index) => (
+                        <div key={index} className="glass-card" style={{ padding: '0.75rem', marginTop: '0.75rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Test Case #{index + 1}</span>
+                            {testCases.length > 1 && (
+                              <button
+                                type="button"
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => setTestCases(testCases.filter((_, idx) => idx !== index))}
+                              >
+                                🗑️ Remove
+                              </button>
+                            )}
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Input (stdin)</label>
+                            <textarea
+                              rows="2"
+                              className="form-input"
+                              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                              value={tc.input}
+                              onChange={(e) => {
+                                const newTcs = [...testCases];
+                                newTcs[index].input = e.target.value;
+                                setTestCases(newTcs);
+                              }}
+                              placeholder="e.g. 5\n10"
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Expected Output</label>
+                            <textarea
+                              rows="2"
+                              className="form-input"
+                              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                              value={tc.expected_output}
+                              onChange={(e) => {
+                                const newTcs = [...testCases];
+                                newTcs[index].expected_output = e.target.value;
+                                setTestCases(newTcs);
+                              }}
+                              placeholder="e.g. 15"
+                              required
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                            <input
+                              type="checkbox"
+                              id={`is-public-${index}`}
+                              checked={tc.is_public}
+                              onChange={(e) => {
+                                const newTcs = [...testCases];
+                                newTcs[index].is_public = e.target.checked;
+                                setTestCases(newTcs);
+                              }}
+                            />
+                            <label htmlFor={`is-public-${index}`} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                              Public (visible to students during exam)
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   <div className="form-group">
