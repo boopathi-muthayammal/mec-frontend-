@@ -270,6 +270,20 @@ function AdminDashboard() {
   const handleSaveRoster = async () => {
     if (previewStudents.length === 0) return;
     setStudentMessage({ type: '', text: '', errors: [] });
+
+    // Validate that all fields are filled
+    for (let i = 0; i < previewStudents.length; i++) {
+      const s = previewStudents[i];
+      if (!s.roll_number.trim() || !s.name.trim() || !s.dob.trim()) {
+        setStudentMessage({
+          type: 'danger',
+          text: `⚠️ Row #${i + 1} has missing fields. Please ensure Roll Number, Student Name, and Date of Birth are completely filled in before saving!`,
+          errors: []
+        });
+        return;
+      }
+    }
+
     try {
       const res = await fetch('/api/admin/students/save-bulk', {
         method: 'POST',
