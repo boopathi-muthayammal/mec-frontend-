@@ -820,7 +820,7 @@ function AdminDashboard() {
                       className="form-input"
                       value={studentForm.roll_number}
                       onChange={(e) => setStudentForm({ ...studentForm, roll_number: e.target.value })}
-                      placeholder="e.g. 22CSE101"
+                      placeholder="e.g. 21CS072"
                       style={{ textTransform: 'uppercase' }}
                       required
                     />
@@ -832,7 +832,7 @@ function AdminDashboard() {
                       className="form-input"
                       value={studentForm.name}
                       onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })}
-                      placeholder="e.g. John Doe"
+                      placeholder="e.g. P.BOOPATHI"
                       required
                     />
                   </div>

@@ -19,6 +19,11 @@ function StudentDashboard() {
   // Resume exam state (if student was mid-exam when session expired)
   const [resumeExam, setResumeExam] = useState(null); // { examId, questionIndex }
 
+  // Detailed Result Modal State
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [detailedResult, setDetailedResult] = useState(null);
+  const [loadingDetailedResult, setLoadingDetailedResult] = useState(false);
+
   // Check auth and load info
   useEffect(() => {
     checkSession();
@@ -123,8 +128,31 @@ function StudentDashboard() {
     }
   };
 
+  const handleViewResult = async (resultId) => {
+    setLoadingDetailedResult(true);
+    setShowResultModal(true);
+    setDetailedResult(null);
+    try {
+      const res = await fetch(`/api/student/results/${resultId}/detailed`);
+      const data = await res.json();
+      if (data.success) {
+        setDetailedResult(data);
+      } else {
+        alert(data.message || 'Failed to fetch detailed results');
+        setShowResultModal(false);
+      }
+    } catch (err) {
+      console.error('Error fetching detailed results:', err);
+      alert('Network error fetching results.');
+      setShowResultModal(false);
+    } finally {
+      setLoadingDetailedResult(false);
+    }
+  };
+
   return (
-    <div className="dashboard">
+    <>
+      <div className="dashboard">
       {/* Top Navbar */}
       <nav className="navbar">
         <div className="nav-brand">
@@ -278,8 +306,10 @@ function StudentDashboard() {
                     <thead>
                       <tr>
                         <th>Exam Title</th>
+                        <th>Marks</th>
                         <th>Status</th>
                         <th>Submission Time</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -287,10 +317,26 @@ function StudentDashboard() {
                         <tr key={r.id}>
                           <td style={{ fontWeight: 600 }}>{r.exam_title}</td>
                           <td>
+                            {r.released ? (
+                              <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.mcq_score} / {r.mcq_total}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>🔒 Locked</span>
+                            )}
+                          </td>
+                          <td>
                             <span className="badge badge-success">✅ Submitted</span>
                           </td>
                           <td style={{ color: 'var(--text-secondary)' }}>
                             {new Date(r.submitted_at).toLocaleString()}
+                          </td>
+                          <td>
+                            {r.released ? (
+                              <button className="btn btn-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: '6px' }} onClick={() => handleViewResult(r.id)}>
+                                👁️ View Result
+                              </button>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Awaiting Release</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -338,7 +384,72 @@ function StudentDashboard() {
           </div>
         </div>
       )}
+
+      {/* DETAILED RESULT MODAL */}
+      {showResultModal && (
+        <div className="modal-overlay" onClick={() => setShowResultModal(false)}>
+          <div className="glass-card modal-box" style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                {detailedResult ? `${detailedResult.exam_title} - Results` : 'Loading Results...'}
+              </h3>
+              <button className="btn btn-secondary" onClick={() => setShowResultModal(false)} style={{ padding: '0.4rem 0.8rem' }}>Close</button>
+            </div>
+            
+            {loadingDetailedResult ? (
+              <div className="flex-center" style={{ padding: '3rem' }}>
+                <p>Loading your answers...</p>
+              </div>
+            ) : detailedResult ? (
+              <div>
+                <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', textAlign: 'center', background: 'rgba(99, 102, 241, 0.1)' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                    {detailedResult.total_score} / {detailedResult.total_possible}
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Total Score</div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {detailedResult.details.map((q, idx) => (
+                    <div key={q.question_id} className="glass-card dashboard-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${q.is_correct ? 'var(--success)' : 'var(--danger)'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                        <h4 style={{ fontWeight: 700, fontSize: '1.05rem', margin: 0 }}>Question {idx + 1}</h4>
+                        <span className={`badge ${q.is_correct ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', textTransform: 'none' }}>
+                          {q.is_correct ? `+${q.total_marks} Marks` : '0 Marks'}
+                        </span>
+                      </div>
+                      <p style={{ marginBottom: '1rem', whiteSpace: 'pre-wrap', lineHeight: '1.5', color: '#e2e8f0' }}>{q.question_text}</p>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Your Answer: </span>
+                          <strong style={{ color: q.is_correct ? 'var(--success)' : 'var(--danger)' }}>
+                            {q.student_answer !== 'Not Answered' ? `${q.student_answer}. ${q.options[q.student_answer]}` : 'Not Answered'}
+                          </strong>
+                        </div>
+                        {!q.is_correct && (
+                          <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Correct Answer: </span>
+                            <strong style={{ color: 'var(--success)' }}>
+                              {q.correct_option}. {q.options[q.correct_option]}
+                            </strong>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-center" style={{ padding: '3rem' }}>
+                <p>Failed to load detailed results.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 }
 
