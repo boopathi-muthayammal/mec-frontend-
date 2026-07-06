@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Watermark from '../components/Watermark';
 
-function StudentExam({ examId }) {
+function StudentExamInner({ examId }) {
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentQ, setCurrentQ] = useState(0);
+  const [studentUser, setStudentUser] = useState(null);
 
   // Exam States
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,13 @@ function StudentExam({ examId }) {
     try {
       const res = await fetch(`/api/student/exams/${examId}/start`);
       const data = await res.json();
+
+      const sessionRes = await fetch('/api/auth/check-session');
+      const sessionData = await sessionRes.json();
+      if (sessionData.success && sessionData.role === 'student') {
+        setStudentUser(sessionData.user);
+      }
+
       if (data.success) {
         setExam(data.exam);
         setQuestions(data.questions);
@@ -797,4 +806,24 @@ function StudentExam({ examId }) {
   );
 }
 
-export default StudentExam;
+export default function StudentExam({ examId }) {
+  const [studentUser, setStudentUser] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/auth/check-session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.role === 'student') {
+          setStudentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <>
+      <Watermark text={studentUser ? `${studentUser.roll_number} ${studentUser.name}` : ''} />
+      <StudentExamInner examId={examId} />
+    </>
+  );
+}

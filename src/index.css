@@ -999,7 +999,6 @@ body {
   pointer-events: none;
   z-index: 9999;
   opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Ctext x='10' y='100' fill='%23888888' font-size='16' font-family='sans-serif' transform='rotate(-30 10 100)' font-weight='bold' opacity='0.4'%3EP.BOOPATHI-CSE%3C/text%3E%3C/svg%3E");
   background-repeat: repeat;
   user-select: none;
 }

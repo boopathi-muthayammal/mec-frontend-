@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Watermark from '../components/Watermark';
 
 function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('exams'); // exams, results
@@ -152,6 +153,7 @@ function StudentDashboard() {
 
   return (
     <>
+      <Watermark text={studentUser ? `${studentUser.roll_number} ${studentUser.name}` : ''} />
       <div className="dashboard">
       {/* Top Navbar */}
       <nav className="navbar">

@@ -76,7 +76,6 @@ function App() {
 
   return (
     <>
-      <div className="global-watermark"></div>
       {renderPage()}
     </>
   );
