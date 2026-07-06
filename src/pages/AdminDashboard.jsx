@@ -157,6 +157,53 @@ function AdminDashboard() {
     }
   };
 
+  const handleResetAttempt = (studentId, studentName) => {
+    showConfirm(
+      'Reset Exam Attempt',
+      `Are you sure you want to reset the exam attempt for ${studentName}? This will permanently delete their answers and results, allowing them to retake this exam.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/exams/${reportsExamId}/reset/${studentId}`, {
+            method: 'POST'
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('Exam attempt reset successfully.');
+            loadClassReport();
+          } else {
+            alert(data.message || 'Failed to reset exam attempt.');
+          }
+        } catch (err) {
+          console.error('Error resetting exam:', err);
+          alert('Network error resetting exam attempt.');
+        }
+      }
+    );
+  };
+
+  const handleResetAllAttempts = () => {
+    showConfirm(
+      'Reset All Exam Attempts',
+      'WARNING: Are you sure you want to reset ALL exam attempts for this class? This will permanently delete answers and results for all students in this report. This action cannot be undone.',
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/exams/${reportsExamId}/reset-all`, {
+            method: 'POST'
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('All exam attempts reset successfully.');
+            loadClassReport();
+          } else {
+            alert(data.message || 'Failed to reset exam attempts.');
+          }
+        } catch (err) {
+          console.error('Error resetting all exams:', err);
+          alert('Network error resetting exam attempts.');
+        }
+      }
+    );
+  };
 
   const showConfirm = (title, message, onConfirm) => {
     setConfirmModal({
@@ -1270,8 +1317,8 @@ function AdminDashboard() {
               </div>
             ) : (
               <div className="glass-card">
-                {/* Screen Header Info */}
-                <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1rem' }}>
+                 {/* Screen Header Info */}
+                <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
                       Report: <span className="text-gradient">{reportExamTitle}</span>
@@ -1280,6 +1327,15 @@ function AdminDashboard() {
                       Year {reportsYear} - Section {reportsSection} | {classReport.length} Students Total
                     </p>
                   </div>
+                  {classReport.some(s => s.attended) && (
+                    <button 
+                      className="btn btn-danger"
+                      onClick={handleResetAllAttempts}
+                      style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      🔄 Reset All attempts
+                    </button>
+                  )}
                 </div>
 
                 {/* Summary boxes */}
@@ -1320,6 +1376,8 @@ function AdminDashboard() {
                         <th>Score</th>
                         <th>Proctoring (Tab Switches)</th>
                         <th>Submit Mode</th>
+                        <th>Submitted At</th>
+                        <th className="no-print">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1378,6 +1436,18 @@ function AdminDashboard() {
                               new Date(student.submitted_at).toLocaleString()
                             ) : (
                               <span>—</span>
+                            )}
+                          </td>
+                          <td className="no-print">
+                            {student.attended && (
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleResetAttempt(student.student_id, student.name)}
+                                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', borderRadius: '6px' }}
+                                title="Reset attempt to let student retake the exam"
+                              >
+                                🔄 Reset
+                              </button>
                             )}
                           </td>
                         </tr>
