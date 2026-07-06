@@ -227,6 +227,12 @@ function AdminDashboard() {
         setCsvFile(null);
         // Reset file input element
         document.getElementById('csvFileInput').value = '';
+        
+        // Update list view filters to match target class
+        setFilterYear(csvYear.toString());
+        setFilterSection(csvSection.toUpperCase());
+        
+        // Load the updated list immediately
         loadStudents();
       } else {
         setStudentMessage({ type: 'danger', text: data.message || 'CSV Upload failed.' });
@@ -636,7 +642,7 @@ function AdminDashboard() {
                         type="text"
                         className="form-input"
                         value={studentForm.section}
-                        onChange={(e) => setStudentForm({ ...studentForm, section: e.target.value })}
+                        onChange={(e) => setStudentForm({ ...studentForm, section: e.target.value.toUpperCase() })}
                         placeholder="e.g. A"
                         style={{ textTransform: 'uppercase' }}
                         required
@@ -672,7 +678,7 @@ function AdminDashboard() {
                         type="text"
                         className="form-input"
                         value={csvSection}
-                        onChange={(e) => setCsvSection(e.target.value)}
+                        onChange={(e) => setCsvSection(e.target.value.toUpperCase())}
                         placeholder="e.g. A"
                         style={{ textTransform: 'uppercase' }}
                         required
@@ -721,7 +727,7 @@ function AdminDashboard() {
                     style={{ width: '110px', padding: '0.5rem', textTransform: 'uppercase' }}
                     placeholder="Section"
                     value={filterSection}
-                    onChange={(e) => setFilterSection(e.target.value)}
+                    onChange={(e) => setFilterSection(e.target.value.toUpperCase())}
                   />
                 </div>
               </div>
