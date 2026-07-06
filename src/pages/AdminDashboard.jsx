@@ -66,6 +66,7 @@ function AdminDashboard() {
   const [testCases, setTestCases] = useState([{ input: '', expected_output: '', is_public: true }]);
   const [fileToUpload, setFileToUpload] = useState(null);
   const [extractedText, setExtractedText] = useState('');
+  const [defaultUploadMarks, setDefaultUploadMarks] = useState(1);
   const [examMessage, setExamMessage] = useState({ type: '', text: '' });
 
   // Student Program Answer State
@@ -579,6 +580,7 @@ function AdminDashboard() {
 
     const formData = new FormData();
     formData.append('file', fileToUpload);
+    formData.append('default_marks', defaultUploadMarks);
 
     try {
       const res = await fetch(`/api/admin/exams/${selectedExam.id}/upload-questions`, {
@@ -1647,6 +1649,17 @@ function AdminDashboard() {
                   Upload a PDF, Word (.docx) or Text (.txt) file containing MCQs. The system will automatically parse and import them directly.
                 </p>
                 <form onSubmit={handleUploadQuestionsFile}>
+                  <div className="form-group">
+                    <label className="form-label">Default Question Marks</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      value={defaultUploadMarks}
+                      onChange={(e) => setDefaultUploadMarks(parseInt(e.target.value) || 1)}
+                      required
+                    />
+                  </div>
                   <div className="form-group">
                     <label className="form-label">Document File</label>
                     <input
