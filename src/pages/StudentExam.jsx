@@ -615,45 +615,31 @@ function StudentExam({ examId }) {
             </div>
 
             {/* Nav controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
               <button
                 className="btn btn-secondary"
                 disabled={currentQ === 0}
                 onClick={() => setCurrentQ(currentQ - 1)}
+                style={{ visibility: currentQ === 0 ? 'hidden' : 'visible' }}
               >
                 ← Previous
               </button>
               
-              <button className="btn btn-primary" onClick={submitExamManual}>
-                📤 Submit Exam
-              </button>
-
-              <button
-                className="btn btn-secondary"
-                disabled={currentQ === questions.length - 1}
-                onClick={() => setCurrentQ(currentQ + 1)}
-              >
-                Next →
-              </button>
-            </div>
-
-            {/* Pagination Navigation Dots */}
-            <div className="q-navigation-grid" style={{ marginTop: '2rem' }}>
-              {questions.map((q, idx) => {
-                let statusClass = '';
-                if (idx === currentQ) statusClass = 'current';
-                else if (answers[q.id]) statusClass = 'answered';
-                
-                return (
+              {currentQ === questions.length - 1 && !!answers[currentQuestion.id] ? (
+                <button className="btn btn-primary" onClick={submitExamManual} style={{ padding: '0.8rem 2.2rem', fontWeight: 800 }}>
+                  📤 Submit Exam
+                </button>
+              ) : (
+                currentQ < questions.length - 1 && !!answers[currentQuestion.id] && (
                   <button
-                    key={q.id}
-                    className={`q-nav-dot ${statusClass}`}
-                    onClick={() => setCurrentQ(idx)}
+                    className="btn btn-primary"
+                    onClick={() => setCurrentQ(currentQ + 1)}
+                    style={{ padding: '0.8rem 2.2rem', fontWeight: 800 }}
                   >
-                    {idx + 1}
+                    Next →
                   </button>
-                );
-              })}
+                )
+              )}
             </div>
           </div>
         )}
