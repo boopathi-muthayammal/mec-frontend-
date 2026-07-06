@@ -638,11 +638,11 @@ function AdminDashboard() {
                 </form>
               </div>
 
-              {/* Upload Students CSV */}
+              {/* Upload Students CSV/Excel */}
               <div className="glass-card">
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Bulk CSV Upload</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Bulk CSV / Excel Upload</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                  Select a CSV file containing: <strong>Roll Number, Name, DOB</strong> headers. Select the target Year and Section below to assign to all imported records.
+                  Select a CSV or Excel (.xlsx/.xls) file containing: <strong>Roll Number, Name, DOB</strong> headers. Select the target Year and Section below to assign to all imported records.
                 </p>
                 <form onSubmit={handleCsvUpload}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -669,18 +669,18 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">CSV File</label>
+                    <label className="form-label">CSV / Excel File</label>
                     <input
                       id="csvFileInput"
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx,.xls"
                       className="form-input"
                       onChange={(e) => setCsvFile(e.target.files[0])}
                       required
                     />
                   </div>
                   <button type="submit" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}>
-                    📤 Upload CSV
+                    📤 Upload File
                   </button>
                 </form>
 
