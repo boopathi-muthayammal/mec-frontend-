@@ -18,6 +18,7 @@ function StudentExamInner({ examId }) {
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [isPartialRetake, setIsPartialRetake] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   // Timer States
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
@@ -316,18 +317,8 @@ function StudentExamInner({ examId }) {
 
 
 
-  const submitExamManual = async () => {
-    const answeredCount = Object.keys(answers).length;
-    const totalCount = questions.length;
-    const unanswered = totalCount - answeredCount;
-
-    let msg = 'Are you sure you want to submit the exam?';
-    if (unanswered > 0) {
-      msg += `\n\n⚠️ You have ${unanswered} unanswered question(s)!`;
-    }
-
-    if (!confirm(msg)) return;
-    await doSubmit(false);
+  const submitExamManual = () => {
+    setShowSubmitConfirm(true);
   };
 
   const autoSubmitExam = async (reason) => {
@@ -802,6 +793,55 @@ function StudentExamInner({ examId }) {
           <button className="btn btn-danger" style={{ padding: '0.85rem 2rem' }} onClick={dismissWarning}>
             Return to Examination
           </button>
+        </div>
+      {/* SUBMIT CONFIRMATION MODAL */}
+      {showSubmitConfirm && (
+        <div className="modal-overlay" onClick={() => setShowSubmitConfirm(false)}>
+          <div className="glass-card modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', width: '90%' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '3.5rem', display: 'block', marginBottom: '0.5rem' }}>📤</span>
+              <h3 className="modal-title" style={{ fontSize: '1.40rem', fontWeight: 800 }}>Submit Assessment?</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
+                Are you sure you want to finish and submit your exam? You cannot change your answers after submitting.
+              </p>
+            </div>
+            
+            {(() => {
+              const answeredCount = Object.keys(answers).length;
+              const totalCount = questions.length;
+              const unanswered = totalCount - answeredCount;
+              if (unanswered > 0) {
+                return (
+                  <div className="badge badge-warning" style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem', width: '100%', fontSize: '0.85rem', textTransform: 'none', justifyContent: 'flex-start', color: 'var(--warning)', marginBottom: '1.5rem' }}>
+                    <span>⚠️</span>
+                    <span>You have <strong>{unanswered} unanswered</strong> question(s) remaining!</span>
+                  </div>
+                );
+              }
+              return (
+                <div className="badge badge-success" style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem', width: '100%', fontSize: '0.85rem', textTransform: 'none', justifyContent: 'flex-start', marginBottom: '1.5rem' }}>
+                  <span>✓</span>
+                  <span>All questions attempted!</span>
+                </div>
+              );
+            })()}
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="btn btn-secondary" style={{ padding: '0.65rem 1.25rem' }} onClick={() => setShowSubmitConfirm(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={async () => {
+                  setShowSubmitConfirm(false);
+                  await doSubmit(false);
+                }}
+                style={{ padding: '0.65rem 1.75rem', fontWeight: 800 }}
+              >
+                Confirm & Submit
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
