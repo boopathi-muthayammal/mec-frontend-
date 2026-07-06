@@ -338,6 +338,28 @@ function AdminDashboard() {
     );
   };
 
+  const handleResetExam = (id) => {
+    showConfirm(
+      'Re-exam / Reset Results?',
+      'Are you sure you want to reset this exam? This will delete all student answers, scorecards, and proctoring violation logs for this exam, allowing all students to retake it from scratch.',
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/exams/${id}/reset`, { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            alert('Exam results reset successfully! All students can now retake this exam.');
+            loadExams();
+          } else {
+            alert(data.message || 'Failed to reset exam.');
+          }
+        } catch (err) {
+          console.error('Error resetting exam:', err);
+          alert('Network error resetting exam.');
+        }
+      }
+    );
+  };
+
   // ==================== QUESTIONS SECTION ====================
   const loadExamDetails = async (exam) => {
     try {
@@ -1156,6 +1178,9 @@ function AdminDashboard() {
                       </button>
                       <button className={`btn ${exam.is_active ? 'btn-secondary' : 'btn-success'}`} style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => handleToggleExam(exam.id)}>
                         {exam.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+                      </button>
+                      <button className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', borderColor: 'var(--warning)', color: 'var(--warning)' }} onClick={() => handleResetExam(exam.id)}>
+                        🔄 Re-exam / Reset
                       </button>
                       <button className="btn btn-danger" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => handleDeleteExam(exam.id)}>
                         🗑️ Delete
