@@ -96,6 +96,43 @@ function AdminDashboard() {
     }
   }, [activeTab, reportsExamId, reportsYear, reportsSection]);
 
+  const normalizeDateForInput = (dob) => {
+    if (!dob) return '';
+    const cleaned = String(dob).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return cleaned;
+    }
+    if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(cleaned)) {
+      const parts = cleaned.split(/[-\/]/);
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return cleaned;
+  };
+
+  const fetchExistingStudentsForPreview = async (year, section) => {
+    if (!year || !section) return;
+    try {
+      const res = await fetch(`/api/admin/students?year=${year}&section=${section}`);
+      const data = await res.json();
+      if (data.success) {
+        const mapped = data.students.map(s => ({
+          roll_number: s.roll_number,
+          name: s.name,
+          dob: normalizeDateForInput(s.dob)
+        }));
+        setPreviewStudents(mapped);
+      }
+    } catch (err) {
+      console.error('Error loading existing students for preview:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'students') {
+      fetchExistingStudentsForPreview(csvYear, csvSection);
+    }
+  }, [csvYear, csvSection, activeTab]);
+
   const loadClassReport = async () => {
     if (!reportsExamId || !reportsYear || !reportsSection) return;
     setReportsLoading(true);
@@ -274,10 +311,10 @@ function AdminDashboard() {
     // Validate that all fields are filled
     for (let i = 0; i < previewStudents.length; i++) {
       const s = previewStudents[i];
-      if (!s.roll_number.trim() || !s.name.trim() || !s.dob.trim()) {
+      if (!s.roll_number.trim() || !s.name.trim()) {
         setStudentMessage({
           type: 'danger',
-          text: `⚠️ Row #${i + 1} has missing fields. Please ensure Roll Number, Student Name, and Date of Birth are completely filled in before saving!`,
+          text: `⚠️ Row #${i + 1} has missing fields. Please ensure Roll Number and Student Name are completely filled in before saving!`,
           errors: []
         });
         return;
@@ -297,7 +334,7 @@ function AdminDashboard() {
       const data = await res.json();
       if (data.success) {
         setStudentMessage({ type: 'success', text: data.message, errors: [] });
-        setPreviewStudents([]);
+        fetchExistingStudentsForPreview(csvYear, csvSection);
         setFilterYear(csvYear.toString());
         setFilterSection(csvSection.toUpperCase());
         loadStudents();
@@ -750,7 +787,6 @@ function AdminDashboard() {
                       className="form-input"
                       value={studentForm.dob}
                       onChange={(e) => setStudentForm({ ...studentForm, dob: e.target.value })}
-                      required
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
