@@ -16,6 +16,9 @@ function StudentDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [selectedExamId, setSelectedExamId] = useState(null);
 
+  // Resume exam state (if student was mid-exam when session expired)
+  const [resumeExam, setResumeExam] = useState(null); // { examId, questionIndex }
+
   // Check auth and load info
   useEffect(() => {
     checkSession();
@@ -37,11 +40,33 @@ function StudentDashboard() {
       const data = await res.json();
       if (data.success && data.role === 'student') {
         setStudentUser(data.user);
+        // Check if student was mid-exam when session expired
+        detectInProgressExam();
       } else {
         window.navigateTo('/student/login');
       }
     } catch (err) {
       window.navigateTo('/student/login');
+    }
+  };
+
+  const detectInProgressExam = () => {
+    try {
+      // Look for any exam_*_progress in localStorage that has isStarted=true
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('exam_') && key.endsWith('_progress')) {
+          const val = localStorage.getItem(key);
+          if (!val) continue;
+          const parsed = JSON.parse(val);
+          if (parsed && parsed.isStarted && parsed.examId) {
+            setResumeExam({ examId: parsed.examId, questionIndex: parsed.currentQ || 0 });
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
     }
   };
 
@@ -127,6 +152,44 @@ function StudentDashboard() {
             Check your scheduled exams or review previous results below.
           </p>
         </div>
+
+        {/* Resume Exam Banner */}
+        {resumeExam && (
+          <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.45)', borderRadius: '14px', padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <span style={{ fontSize: '1.6rem' }}>⏸️</span>
+              <div>
+                <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem' }}>Exam In Progress!</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.15rem' }}>
+                  You were in the middle of an exam when your session ended. Your answers have been saved.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.65rem', flexShrink: 0 }}>
+              <button
+                className="btn btn-success"
+                style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }}
+                onClick={() => {
+                  window.navigateTo('/student/exam', `id=${resumeExam.examId}&resume=1`);
+                }}
+              >
+                ▶ Resume Exam
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+                onClick={() => {
+                  // Dismiss: clear the saved progress for this exam
+                  try { localStorage.removeItem(`exam_${resumeExam.examId}_progress`); } catch(e){}
+                  setResumeExam(null);
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
 
         {/* Tab Selection */}
         <div className="tabs-nav">

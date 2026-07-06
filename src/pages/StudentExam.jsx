@@ -85,16 +85,21 @@ function StudentExam({ examId }) {
     return () => clearInterval(pingInterval);
   }, [isStarted, examSubmitted]);
 
-  // Auto-save answers progress to localStorage
+  // Auto-save answers + current question + isStarted status to localStorage
   useEffect(() => {
     if (isStarted && examId && !examSubmitted) {
       try {
-        localStorage.setItem(`exam_${examId}_progress`, JSON.stringify({ answers }));
+        localStorage.setItem(`exam_${examId}_progress`, JSON.stringify({
+          answers,
+          currentQ,
+          examId,
+          isStarted: true
+        }));
       } catch (e) {
         console.error('Error saving progress:', e);
       }
     }
-  }, [answers, isStarted, examId, examSubmitted]);
+  }, [answers, currentQ, isStarted, examId, examSubmitted]);
 
   // Persist warnings count to sessionStorage
   useEffect(() => {
@@ -118,13 +123,19 @@ function StudentExam({ examId }) {
         setTimeLeft(data.exam.duration_minutes * 60);
         setIsPartialRetake(!!data.partial_retake);
         
-        // Only restore progress for fresh attempts (not partial retake)
+        // Restore saved progress (answers + question index)
         if (!data.partial_retake) {
           try {
             const progress = localStorage.getItem(`exam_${examId}_progress`);
             if (progress) {
               const parsed = JSON.parse(progress);
               if (parsed.answers) setAnswers(parsed.answers);
+              // Check if resuming via URL param or saved state
+              const urlParams = new URLSearchParams(window.location.search);
+              const isResume = urlParams.get('resume') === '1' || parsed.isStarted;
+              if (isResume && typeof parsed.currentQ === 'number' && parsed.currentQ > 0) {
+                setCurrentQ(parsed.currentQ);
+              }
             }
           } catch (e) {
             console.error('Error restoring progress:', e);
@@ -140,12 +151,27 @@ function StudentExam({ examId }) {
     }
   };
 
-  const handleStartExam = () => {
+  const handleStartExam = (autoStart = false) => {
     requestFullscreen();
     startTimer(timeLeft);
     enableAntiCheat();
     setIsStarted(true);
   };
+
+  // Auto-start if resuming from a previous session
+  useEffect(() => {
+    if (!loading && exam && !isStarted && !examSubmitted) {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('resume') === '1') {
+          // Auto-tick all consent checkboxes and start
+          setAgreedToProctoring({ fullscreen: true, tabSwitch: true, noCheating: true });
+          // Short delay to let state settle, then auto-start
+          setTimeout(() => handleStartExam(true), 400);
+        }
+      } catch (e) {}
+    }
+  }, [loading, exam]);
 
   // Timer logic
   const startTimer = (initialTime) => {
