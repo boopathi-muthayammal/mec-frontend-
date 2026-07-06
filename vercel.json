@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://YOUR_BACKEND_URL.com/api/:path*"
+    },
+    {
+      "source": "/((?!api|assets|favicon.ico).*)",
+      "destination": "/index.html"
     }
   ]
 }
