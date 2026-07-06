@@ -15,6 +15,7 @@ function StudentExam({ examId }) {
   const [submitReason, setSubmitReason] = useState('');
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [isPartialRetake, setIsPartialRetake] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Timer States
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
@@ -326,6 +327,7 @@ function StudentExam({ examId }) {
 
   const doSubmit = async (isAuto, reason = '') => {
     setExamSubmitted(true);
+    setIsSubmitting(true);
     clearInterval(timerIntervalRef.current);
     disableAntiCheat();
     exitFullscreen();
@@ -347,6 +349,7 @@ function StudentExam({ examId }) {
         });
         const data = await res.json();
         if (data.success) {
+          setIsSubmitting(false);
           setEvaluationResult(data.evaluation);
           try {
             localStorage.removeItem(`exam_${examId}_progress`);
@@ -373,19 +376,76 @@ function StudentExam({ examId }) {
           await new Promise(resolve => setTimeout(resolve, attempt * 2000));
         } else {
           // All retries exhausted — show error but DO NOT navigate away
-          alert(`Network error submitting exam (${maxRetries} attempts failed). Please check your connection. Your answers are saved — tap OK and try the Submit button again.`);
-          // Re-enable exam state so student can retry
+          setIsSubmitting(false);
           setExamSubmitted(false);
+          alert(`Network error submitting exam (${maxRetries} attempts failed). Please check your connection. Your answers are saved — tap OK and try the Submit button again.`);
         }
       }
     }
   };
 
 
-  if (loading) {
+  if (loading || isSubmitting) {
     return (
-      <div className="flex-center" style={{ minHeight: '100vh' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Preparing exam screen...</p>
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, #0a0a1a 60%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        zIndex: 9999, gap: '2rem'
+      }}>
+        {/* Animated spinner ring */}
+        <div style={{ position: 'relative', width: '96px', height: '96px' }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            borderRadius: '50%',
+            border: '4px solid rgba(99,102,241,0.15)',
+            borderTopColor: '#6366f1',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <div style={{
+            position: 'absolute', inset: '14px',
+            borderRadius: '50%',
+            border: '3px solid rgba(139,92,246,0.15)',
+            borderTopColor: '#8b5cf6',
+            animation: 'spin 1.4s linear infinite reverse'
+          }} />
+          <div style={{
+            position: 'absolute', inset: '28px',
+            borderRadius: '50%',
+            border: '2px solid rgba(167,139,250,0.2)',
+            borderTopColor: '#a78bfa',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {isSubmitting ? 'Submitting Your Exam…' : 'Preparing exam screen...'}
+          </div>
+          {isSubmitting && (
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', marginTop: '0.65rem', fontWeight: 500 }}>
+              Please wait — do not close this tab or press Back.
+            </div>
+          )}
+        </div>
+        {isSubmitting && (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: '#6366f1',
+                animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                opacity: 0.6
+              }} />
+            ))}
+          </div>
+        )}
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes pulse {
+            0%, 100% { transform: scale(0.7); opacity: 0.4; }
+            50% { transform: scale(1.2); opacity: 1; }
+          }
+        `}</style>
       </div>
     );
   }
