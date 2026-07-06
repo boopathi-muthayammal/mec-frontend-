@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview'); // overview, students, exams, reports
   const [adminUser, setAdminUser] = useState(null);
@@ -35,7 +44,8 @@ function AdminDashboard() {
     description: '',
     duration_minutes: 30,
     target_years: [1, 2, 3, 4],
-    target_sections: ['A', 'B', 'C', 'D', 'E']
+    target_sections: ['A', 'B', 'C', 'D', 'E'],
+    exam_date: getTodayDateString()
   });
   const [selectedExam, setSelectedExam] = useState(null); // When viewing questions for an exam
 
@@ -274,7 +284,8 @@ function AdminDashboard() {
           description: '',
           duration_minutes: 30,
           target_years: [1, 2, 3, 4],
-          target_sections: ['A', 'B', 'C', 'D', 'E']
+          target_sections: ['A', 'B', 'C', 'D', 'E'],
+          exam_date: getTodayDateString()
         });
         loadExams();
       } else {
@@ -1021,6 +1032,29 @@ function AdminDashboard() {
                     placeholder="Describe guidelines for this examination..."
                   />
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Duration (minutes)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={examForm.duration_minutes}
+                      onChange={(e) => setExamForm({ ...examForm, duration_minutes: parseInt(e.target.value) || 30 })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Exam Date</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={examForm.exam_date}
+                      onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label className="form-label">Target Year(s)</label>
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
@@ -1103,6 +1137,7 @@ function AdminDashboard() {
                     </p>
                     <div className="card-meta" style={{ marginBottom: '0.75rem' }}>
                       <span>⏱️ {exam.duration_minutes} min</span>
+                      <span>📅 {exam.exam_date ? new Date(exam.exam_date).toLocaleDateString() : 'Today'}</span>
                       <span>❓ {exam.question_count} questions</span>
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
