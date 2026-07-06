@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoginLoader from '../components/LoginLoader';
 
 function StudentLogin() {
   const [rollNumber, setRollNumber] = useState('');
@@ -47,8 +48,10 @@ function StudentLogin() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card glass-card">
+    <>
+      <LoginLoader visible={loading} role="student" />
+      <div className="login-container">
+        <div className="login-card glass-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <span style={{ fontSize: '3rem' }}>🛡️</span>
           <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>
@@ -100,8 +103,9 @@ function StudentLogin() {
             Admin Portal →
           </a>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
