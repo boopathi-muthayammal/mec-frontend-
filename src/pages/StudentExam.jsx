@@ -70,6 +70,11 @@ function StudentExam({ examId }) {
     }
   });
   const [showWarningOverlay, setShowWarningOverlay] = useState(false);
+  const [agreedToProctoring, setAgreedToProctoring] = useState({
+    fullscreen: false,
+    tabSwitch: false,
+    noCheating: false
+  });
   const isProcessingViolationRef = useRef(false);
   const isUnloadingRef = useRef(false);
 
@@ -462,34 +467,141 @@ function StudentExam({ examId }) {
   }
 
   if (!isStarted) {
+    const isStartEnabled = agreedToProctoring.fullscreen && agreedToProctoring.tabSwitch && agreedToProctoring.noCheating;
+
     return (
-      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '2.5rem', border: '1px solid var(--border-glass)', borderRadius: '16px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <span style={{ fontSize: '3.5rem' }}>🛡️</span>
-            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>ExamGuard Secure Environment</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>Technical Round Assessment: <strong>{exam && exam.title}</strong></p>
-          </div>
-
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-glass)', borderRadius: '12px', padding: '1.25rem', marginBottom: '2rem' }}>
-            <h4 style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff', marginBottom: '0.75rem' }}>🚨 Mandatory Compliance Rules:</h4>
-            <ul style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li>This examination uses <strong>Strict Fullscreen Proctoring</strong>.</li>
-              <li>Leaving fullscreen mode or switching tabs will log a security violation.</li>
-              <li>A maximum of <strong>1 warning</strong> is permitted. A second violation will result in <strong>automatic exam submission</strong>.</li>
-              <li>Right-clicking, copying, pasting, or standard developer key shortcuts are strictly disabled.</li>
-              <li>Ensure your internet connection is stable before proceeding.</li>
-            </ul>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              ⏱️ Duration: <strong>{exam && exam.duration_minutes} Minutes</strong> &nbsp;|&nbsp; ❓ Total Questions: <strong>{questions.length}</strong>
+      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem', background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent 40%)' }}>
+        <div className="glass-card" style={{ maxWidth: '950px', width: '100%', padding: '2.5rem', border: '1px solid var(--border-glass)', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1.5rem' }}>
+            <span style={{ fontSize: '3rem' }}>🛡️</span>
+            <div>
+              <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>ExamGuard Secure Portal</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: '0.2rem 0 0' }}>Candidate Verification & Mandatory Proctoring Instructions</p>
             </div>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '1rem' }} onClick={handleStartExam}>
-              🔒 Enter Fullscreen & Start Technical Round
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
+            {/* Left Panel - Exam Details & Checklist */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Assessment Profile</span>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', margin: '0.25rem 0' }}>{exam && exam.title}</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', margin: '0.5rem 0 0' }}>
+                  {exam && exam.description || 'No guidelines description provided. Please satisfy all proctoring criteria before entering.'}
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>⏱️ Timer Duration</span>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{exam && exam.duration_minutes} Minutes</div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>❓ Questions Count</span>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{questions.length} Items</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Declaration of Consent</span>
+                
+                <label style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  <input 
+                    type="checkbox" 
+                    style={{ marginTop: '0.2rem', width: '17px', height: '17px', cursor: 'pointer' }}
+                    checked={agreedToProctoring.fullscreen}
+                    onChange={(e) => setAgreedToProctoring(prev => ({ ...prev, fullscreen: e.target.checked }))}
+                  />
+                  <span>I agree to enter <strong>Fullscreen Mode</strong> and will not try to exit fullscreen until my exam is fully submitted.</span>
+                </label>
+
+                <label style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  <input 
+                    type="checkbox" 
+                    style={{ marginTop: '0.2rem', width: '17px', height: '17px', cursor: 'pointer' }}
+                    checked={agreedToProctoring.tabSwitch}
+                    onChange={(e) => setAgreedToProctoring(prev => ({ ...prev, tabSwitch: e.target.checked }))}
+                  />
+                  <span>I understand that switching tabs is strictly forbidden and I have a <strong>maximum of 3 warnings</strong>. A 4th switch will auto-submit my exam.</span>
+                </label>
+
+                <label style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  <input 
+                    type="checkbox" 
+                    style={{ marginTop: '0.2rem', width: '17px', height: '17px', cursor: 'pointer' }}
+                    checked={agreedToProctoring.noCheating}
+                    onChange={(e) => setAgreedToProctoring(prev => ({ ...prev, noCheating: e.target.checked }))}
+                  />
+                  <span>I acknowledge that right-click, copy-paste, and developer shortcuts (F12, print screen) are disabled.</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Right Panel - Compliance Warning Details */}
+            <div style={{ background: 'rgba(255, 82, 82, 0.03)', border: '1px solid rgba(255, 82, 82, 0.15)', borderRadius: '16px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>🚨</span> CRITICAL SECURITY PROTOCOLS
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🚫</span>
+                  <div>
+                    <strong style={{ color: '#fff' }}>Tab & Window Switches:</strong>
+                    <br />
+                    Navigating to other apps, opening chat platforms, opening search engines, or switching tabs is fully tracked. You are only allowed 3 warning prompts. The 4th instance triggers an auto-submit.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🖥️</span>
+                  <div>
+                    <strong style={{ color: '#fff' }}>Fullscreen Mandate:</strong>
+                    <br />
+                    The assessment must be taken in fullscreen. Do not press Escape or click away. Leaving fullscreen is treated as a security violation.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>⌨️</span>
+                  <div>
+                    <strong style={{ color: '#fff' }}>Keyboard & Mouse Actions:</strong>
+                    <br />
+                    All keys like Control, Alt, Command, F12, and print screens are blocked. Right-clicking or copy-pasting is restricted.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🔌</span>
+                  <div>
+                    <strong style={{ color: '#fff' }}>Uninterrupted Assessment:</strong>
+                    <br />
+                    Once you start the assessment, the timer continues. Ensure you have power backups and a robust internet connection.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '0.8rem 1.8rem' }}
+              onClick={() => window.navigateTo('/student/dashboard')}
+            >
+              Cancel & Exit
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ padding: '0.85rem 2.2rem', fontWeight: 800, fontSize: '1rem', opacity: isStartEnabled ? 1 : 0.4, cursor: isStartEnabled ? 'pointer' : 'not-allowed' }} 
+              disabled={!isStartEnabled}
+              onClick={handleStartExam}
+            >
+              🔒 Enter Fullscreen & Start Technical Assessment
             </button>
           </div>
+
         </div>
       </div>
     );
@@ -891,13 +1003,19 @@ function StudentExam({ examId }) {
             TAB SWITCH VIOLATION DETECTED
           </h2>
           <p style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            Violation count: {tabSwitchCount} / {MAX_WARNINGS + 1}
+            Violation count: {tabSwitchCount} / {MAX_WARNINGS}
           </p>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto 2rem', lineHeight: '1.6' }}>
             Attention: You are not allowed to navigate away from the exam. Your activity is being monitored.
-            <strong style={{ color: 'var(--danger)', display: 'block', marginTop: '0.5rem' }}>
-              NEXT DETECTED TAB SWITCH WILL FORCE AUTO-SUBMISSION!
-            </strong>
+            {tabSwitchCount < MAX_WARNINGS ? (
+              <strong style={{ color: 'var(--warning)', display: 'block', marginTop: '0.5rem' }}>
+                You have {MAX_WARNINGS - tabSwitchCount} warning(s) remaining before automatic submission.
+              </strong>
+            ) : (
+              <strong style={{ color: 'var(--danger)', display: 'block', marginTop: '0.5rem', fontSize: '1.25rem' }}>
+                FINAL WARNING: NEXT DETECTED TAB SWITCH WILL FORCE AUTO-SUBMISSION!
+              </strong>
+            )}
           </p>
           <button className="btn btn-danger" style={{ padding: '0.85rem 2rem' }} onClick={dismissWarning}>
             Return to Examination
