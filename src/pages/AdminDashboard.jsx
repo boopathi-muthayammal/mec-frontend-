@@ -184,6 +184,29 @@ function AdminDashboard() {
     }
   };
 
+  const downloadStudentsExcel = () => {
+    const headers = ['Roll Number', 'Name', 'DOB', 'Year', 'Section', 'Exams Taken', 'Average Score'];
+    const rows = students.map(s => [
+      `"${s.roll_number}"`,
+      `"${s.name}"`,
+      `"${s.dob}"`,
+      `"Yr ${s.year}"`,
+      `"Sec ${s.section}"`,
+      s.exams_taken,
+      `"${s.average_score}%"`
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `registered_students_${filterYear ? 'Yr' + filterYear : 'AllYears'}_${filterSection ? 'Sec' + filterSection : 'AllSecs'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAddStudent = async (e) => {
     e.preventDefault();
     setStudentMessage({ type: '', text: '' });
@@ -616,7 +639,7 @@ function AdminDashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               
               {/* Add Single Student */}
-              <div className="glass-card">
+              <div className="glass-card no-print">
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Add Single Student</h3>
                 <form onSubmit={handleAddStudent}>
                   <div className="form-group">
@@ -668,15 +691,36 @@ function AdminDashboard() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Section</label>
-                      <input
-                        type="text"
+                      <select
                         className="form-input"
-                        value={studentForm.section}
-                        onChange={(e) => setStudentForm({ ...studentForm, section: e.target.value.toUpperCase() })}
-                        placeholder="e.g. A"
-                        style={{ textTransform: 'uppercase' }}
-                        required
-                      />
+                        value={['A', 'B', 'C', 'D', 'E'].includes(studentForm.section) ? studentForm.section : 'Custom'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Custom') {
+                            setStudentForm({ ...studentForm, section: '' });
+                          } else {
+                            setStudentForm({ ...studentForm, section: val });
+                          }
+                        }}
+                      >
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                        <option value="C">Section C</option>
+                        <option value="D">Section D</option>
+                        <option value="E">Section E</option>
+                        <option value="Custom">Custom...</option>
+                      </select>
+                      {!['A', 'B', 'C', 'D', 'E'].includes(studentForm.section) && (
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ marginTop: '0.5rem', textTransform: 'uppercase' }}
+                          placeholder="Type section..."
+                          value={studentForm.section}
+                          onChange={(e) => setStudentForm({ ...studentForm, section: e.target.value.toUpperCase() })}
+                          required
+                        />
+                      )}
                     </div>
                   </div>
                   <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}>
@@ -686,7 +730,7 @@ function AdminDashboard() {
               </div>
 
               {/* Upload Students CSV/Excel */}
-              <div className="glass-card">
+              <div className="glass-card no-print">
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Bulk CSV / Excel Upload</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
                   Select a CSV or Excel (.xlsx/.xls) file containing: <strong>Roll Number, Name, DOB</strong> headers. Select the target Year and Section below to assign to all imported records.
@@ -704,15 +748,36 @@ function AdminDashboard() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Assign Section</label>
-                      <input
-                        type="text"
+                      <select
                         className="form-input"
-                        value={csvSection}
-                        onChange={(e) => setCsvSection(e.target.value.toUpperCase())}
-                        placeholder="e.g. A"
-                        style={{ textTransform: 'uppercase' }}
-                        required
-                      />
+                        value={['A', 'B', 'C', 'D', 'E'].includes(csvSection) ? csvSection : 'Custom'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Custom') {
+                            setCsvSection('');
+                          } else {
+                            setCsvSection(val);
+                          }
+                        }}
+                      >
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                        <option value="C">Section C</option>
+                        <option value="D">Section D</option>
+                        <option value="E">Section E</option>
+                        <option value="Custom">Custom...</option>
+                      </select>
+                      {!['A', 'B', 'C', 'D', 'E'].includes(csvSection) && (
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ marginTop: '0.5rem', textTransform: 'uppercase' }}
+                          placeholder="Type section..."
+                          value={csvSection}
+                          onChange={(e) => setCsvSection(e.target.value.toUpperCase())}
+                          required
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="form-group">
@@ -762,25 +827,79 @@ function AdminDashboard() {
             </div>
 
             {/* Students List with Filter */}
-            <div className="glass-card">
+            <div className="glass-card printable-area">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Registered Students</h3>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <select className="form-input" style={{ width: '130px', padding: '0.5rem' }} value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+                <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select
+                    className="form-input"
+                    style={{ width: '110px', padding: '0.5rem' }}
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                  >
                     <option value="">All Years</option>
                     <option value="1">1st Year</option>
                     <option value="2">2nd Year</option>
                     <option value="3">3rd Year</option>
                     <option value="4">4th Year</option>
                   </select>
-                  <input
-                    type="text"
+                  
+                  <select
                     className="form-input"
-                    style={{ width: '110px', padding: '0.5rem', textTransform: 'uppercase' }}
-                    placeholder="Section"
-                    value={filterSection}
-                    onChange={(e) => setFilterSection(e.target.value.toUpperCase())}
-                  />
+                    style={{ width: '130px', padding: '0.5rem' }}
+                    value={['', 'A', 'B', 'C', 'D', 'E'].includes(filterSection) ? filterSection : 'Custom'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'Custom') {
+                        setFilterSection('');
+                      } else {
+                        setFilterSection(val);
+                      }
+                    }}
+                  >
+                    <option value="">All Sections</option>
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                    <option value="C">Section C</option>
+                    <option value="D">Section D</option>
+                    <option value="E">Section E</option>
+                    <option value="Custom">Custom...</option>
+                  </select>
+
+                  {!['', 'A', 'B', 'C', 'D', 'E'].includes(filterSection) && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ width: '90px', padding: '0.5rem', textTransform: 'uppercase' }}
+                      placeholder="Section..."
+                      value={filterSection}
+                      onChange={(e) => setFilterSection(e.target.value.toUpperCase())}
+                    />
+                  )}
+
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} 
+                    onClick={loadStudents}
+                  >
+                    🔍 Filter
+                  </button>
+
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', borderColor: 'var(--success)', color: 'var(--success)' }} 
+                    onClick={downloadStudentsExcel}
+                  >
+                    📥 Excel
+                  </button>
+
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} 
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Print
+                  </button>
                 </div>
               </div>
 

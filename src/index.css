@@ -839,16 +839,32 @@ body {
   }
   
   .navbar,
+  .sidebar,
+  .top-header,
   .tabs-nav,
   .report-filters-bar,
   .btn,
   .no-print,
-  button {
+  button,
+  header {
     display: none !important;
   }
   
   .container {
     max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
     padding: 0 !important;
     margin: 0 !important;
   }
