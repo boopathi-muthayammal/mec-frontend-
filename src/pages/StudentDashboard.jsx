@@ -207,6 +207,7 @@ function StudentDashboard() {
                       <tr>
                         <th>Exam Title</th>
                         <th>Status</th>
+                        <th>Mark</th>
                         <th>Submission Time</th>
                       </tr>
                     </thead>
@@ -216,6 +217,17 @@ function StudentDashboard() {
                           <td style={{ fontWeight: 600 }}>{r.exam_title}</td>
                           <td>
                             <span className="badge badge-success">✅ Submitted</span>
+                          </td>
+                          <td style={{ fontWeight: 700 }}>
+                            {r.released ? (
+                              <span style={{ color: 'var(--success)' }}>
+                                {r.mcq_score} / {r.mcq_total}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontWeight: 'normal', fontSize: '0.85rem' }}>
+                                🔒 Awaiting Release
+                              </span>
+                            )}
                           </td>
                           <td style={{ color: 'var(--text-secondary)' }}>
                             {new Date(r.submitted_at).toLocaleString()}

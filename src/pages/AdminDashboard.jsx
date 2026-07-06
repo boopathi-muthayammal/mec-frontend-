@@ -116,9 +116,9 @@ function AdminDashboard() {
       const data = await res.json();
       if (data.success) {
         const mapped = data.students.map(s => ({
-          roll_number: s.roll_number,
-          name: s.name,
-          dob: normalizeDateForInput(s.dob)
+          roll_number: s.roll_number || '',
+          name: s.name || '',
+          dob: normalizeDateForInput(s.dob) || ''
         }));
         setPreviewStudents(mapped);
       }
@@ -311,7 +311,7 @@ function AdminDashboard() {
     // Validate that all fields are filled
     for (let i = 0; i < previewStudents.length; i++) {
       const s = previewStudents[i];
-      if (!s.roll_number.trim() || !s.name.trim()) {
+      if (!s.roll_number || !String(s.roll_number).trim() || !s.name || !String(s.name).trim()) {
         setStudentMessage({
           type: 'danger',
           text: `⚠️ Row #${i + 1} has missing fields. Please ensure Roll Number and Student Name are completely filled in before saving!`,
@@ -463,6 +463,21 @@ function AdminDashboard() {
     }
   };
 
+  const handleToggleResultsRelease = async (id) => {
+    try {
+      const res = await fetch(`/api/admin/exams/${id}/toggle-results-release`, { method: 'PUT' });
+      const data = await res.json();
+      if (data.success) {
+        loadExams();
+        if (selectedExam && selectedExam.id === id) {
+          setSelectedExam(data.exam);
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling results release:', err);
+    }
+  };
+
   const handleDeleteExam = (id) => {
     showConfirm(
       'Delete Exam?',
@@ -526,8 +541,7 @@ function AdminDashboard() {
     setExamMessage({ type: '', text: '' });
 
     const payload = {
-      ...questionForm,
-      test_cases: questionForm.question_type === 'PROGRAM' ? testCases : []
+      ...questionForm
     };
 
     try {
@@ -549,7 +563,6 @@ function AdminDashboard() {
           correct_option: 'A',
           marks: 1
         });
-        setTestCases([{ input: '', expected_output: '', is_public: true }]);
         loadExamDetails(selectedExam);
       } else {
         setExamMessage({ type: 'danger', text: data.message || 'Failed to add question.' });
@@ -693,8 +706,7 @@ function AdminDashboard() {
                       <th>Student</th>
                       <th>Roll Number</th>
                       <th>Exam</th>
-                      <th>MCQ Score</th>
-                      <th>Coding Score</th>
+                      <th>Score</th>
                       <th>Tabs Switched</th>
                       <th>Status</th>
                       <th>Submitted At</th>
@@ -704,7 +716,7 @@ function AdminDashboard() {
                   <tbody>
                     {recentResults.length === 0 ? (
                       <tr>
-                        <td colSpan="9" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
+                        <td colSpan="8" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
                           No results submitted yet.
                         </td>
                       </tr>
@@ -715,7 +727,6 @@ function AdminDashboard() {
                           <td>{r.roll_number}</td>
                           <td>{r.exam_title}</td>
                           <td>{r.mcq_score} / {r.mcq_total}</td>
-                          <td>{r.program_total > 0 ? `${r.program_score} / ${r.program_total}` : 'N/A'}</td>
                           <td style={{ color: r.tab_switches > 0 ? 'var(--danger)' : 'inherit', fontWeight: r.tab_switches > 0 ? 700 : 'normal' }}>
                             {r.tab_switches}
                           </td>
@@ -730,13 +741,9 @@ function AdminDashboard() {
                             {new Date(r.submitted_at).toLocaleString()}
                           </td>
                           <td>
-                            {r.program_submitted ? (
-                              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleViewSubmissionAnswers(r.exam_id, r.student_id || '', r.student_name, r.roll_number)}>
-                                👁️ View Code
-                              </button>
-                            ) : (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No code</span>
-                            )}
+                            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleViewSubmissionAnswers(r.exam_id, r.student_id || '', r.student_name, r.roll_number)}>
+                              👁️ View Answers
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -998,7 +1005,7 @@ function AdminDashboard() {
                               type="text" 
                               className="form-input" 
                               style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem', textTransform: 'uppercase' }} 
-                              value={stud.roll_number}
+                              value={stud.roll_number || ''}
                               onChange={(e) => handlePreviewRowChange(idx, 'roll_number', e.target.value.toUpperCase())}
                             />
                           </td>
@@ -1007,7 +1014,7 @@ function AdminDashboard() {
                               type="text" 
                               className="form-input" 
                               style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem' }} 
-                              value={stud.name}
+                              value={stud.name || ''}
                               onChange={(e) => handlePreviewRowChange(idx, 'name', e.target.value)}
                             />
                           </td>
@@ -1016,7 +1023,7 @@ function AdminDashboard() {
                               type="date" 
                               className="form-input" 
                               style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem' }} 
-                              value={stud.dob}
+                              value={stud.dob || ''}
                               onChange={(e) => handlePreviewRowChange(idx, 'dob', e.target.value)}
                             />
                           </td>
@@ -1308,9 +1315,7 @@ function AdminDashboard() {
                         <th>Roll Number</th>
                         <th>Student Name</th>
                         <th>Attendance</th>
-                        <th>MCQ Score</th>
-                        <th>Coding Score</th>
-                        <th>Total Marks</th>
+                        <th>Score</th>
                         <th>Proctoring (Tab Switches)</th>
                         <th>Submit Mode</th>
                       </tr>
@@ -1343,24 +1348,6 @@ function AdminDashboard() {
                           <td>
                             {student.attended && student.score_details ? (
                               `${student.score_details.mcq_score} / ${student.score_details.mcq_total}`
-                            ) : (
-                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
-                            )}
-                          </td>
-                          <td>
-                            {student.attended && student.score_details ? (
-                              student.score_details.program_total > 0 ? (
-                                `${student.score_details.program_score} / ${student.score_details.program_total}`
-                              ) : (
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>N/A</span>
-                              )
-                            ) : (
-                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
-                            )}
-                          </td>
-                          <td style={{ fontWeight: student.attended ? 700 : 'normal' }}>
-                            {student.attended && student.score_details ? (
-                              `${student.score_details.total_score} / ${student.score_details.total_possible}`
                             ) : (
                               <span style={{ color: 'var(--text-secondary)' }}>—</span>
                             )}
@@ -1531,9 +1518,14 @@ function AdminDashboard() {
                   <div key={exam.id} className="glass-card" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{exam.title}</h4>
-                      <span className={`badge ${exam.is_active ? 'badge-success' : 'badge-danger'}`}>
-                        {exam.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <span className={`badge ${exam.results_released ? 'badge-success' : 'badge-warning'}`} style={{ textTransform: 'none', fontSize: '0.8rem' }}>
+                          {exam.results_released ? '🟢 Marks Released' : '🔒 Marks Locked'}
+                        </span>
+                        <span className={`badge ${exam.is_active ? 'badge-success' : 'badge-danger'}`}>
+                          {exam.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                     </div>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                       {exam.description || 'No description available.'}
@@ -1553,6 +1545,9 @@ function AdminDashboard() {
                       </button>
                       <button className={`btn ${exam.is_active ? 'btn-secondary' : 'btn-success'}`} style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => handleToggleExam(exam.id)}>
                         {exam.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+                      </button>
+                      <button className={`btn ${exam.results_released ? 'btn-secondary' : 'btn-success'}`} style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => handleToggleResultsRelease(exam.id)}>
+                        {exam.results_released ? '🔒 Lock Marks' : '📢 Release Marks'}
                       </button>
                       <button className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => startEditExam(exam)}>
                         ✏️ Edit Exam
@@ -1587,18 +1582,6 @@ function AdminDashboard() {
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>Add Question</h3>
                 <form onSubmit={handleAddQuestion}>
                   <div className="form-group">
-                    <label className="form-label">Question Type</label>
-                    <select
-                      className="form-input"
-                      value={questionForm.question_type}
-                      onChange={(e) => setQuestionForm({ ...questionForm, question_type: e.target.value })}
-                    >
-                      <option value="MCQ">Multiple Choice Question (MCQ)</option>
-                      <option value="PROGRAM">Programming Question</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
                     <label className="form-label">Question Text</label>
                     <textarea
                       className="form-input"
@@ -1610,117 +1593,35 @@ function AdminDashboard() {
                     />
                   </div>
 
-                  {questionForm.question_type === 'MCQ' && (
-                    <>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="form-group">
-                          <label className="form-label">Option A</label>
-                          <input type="text" className="form-input" value={questionForm.option_a} onChange={(e) => setQuestionForm({ ...questionForm, option_a: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Option B</label>
-                          <input type="text" className="form-input" value={questionForm.option_b} onChange={(e) => setQuestionForm({ ...questionForm, option_b: e.target.value })} required />
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="form-group">
-                          <label className="form-label">Option C</label>
-                          <input type="text" className="form-input" value={questionForm.option_c} onChange={(e) => setQuestionForm({ ...questionForm, option_c: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Option D</label>
-                          <input type="text" className="form-input" value={questionForm.option_d} onChange={(e) => setQuestionForm({ ...questionForm, option_d: e.target.value })} required />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Correct Option</label>
-                        <select className="form-input" value={questionForm.correct_option} onChange={(e) => setQuestionForm({ ...questionForm, correct_option: e.target.value })}>
-                          <option value="A">Option A</option>
-                          <option value="B">Option B</option>
-                          <option value="C">Option C</option>
-                          <option value="D">Option D</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  {questionForm.question_type === 'PROGRAM' && (
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <span>Test Cases</span>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', gap: '0.25rem' }}
-                          onClick={() => setTestCases([...testCases, { input: '', expected_output: '', is_public: true }])}
-                        >
-                          ➕ Add Test Case
-                        </button>
-                      </label>
-                      {testCases.map((tc, index) => (
-                        <div key={index} className="glass-card" style={{ padding: '0.75rem', marginTop: '0.75rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Test Case #{index + 1}</span>
-                            {testCases.length > 1 && (
-                              <button
-                                type="button"
-                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem' }}
-                                onClick={() => setTestCases(testCases.filter((_, idx) => idx !== index))}
-                              >
-                                🗑️ Remove
-                              </button>
-                            )}
-                          </div>
-                          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Input (stdin)</label>
-                            <textarea
-                              rows="2"
-                              className="form-input"
-                              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                              value={tc.input}
-                              onChange={(e) => {
-                                const newTcs = [...testCases];
-                                newTcs[index].input = e.target.value;
-                                setTestCases(newTcs);
-                              }}
-                              placeholder="e.g. 5\n10"
-                            />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Expected Output</label>
-                            <textarea
-                              rows="2"
-                              className="form-input"
-                              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                              value={tc.expected_output}
-                              onChange={(e) => {
-                                const newTcs = [...testCases];
-                                newTcs[index].expected_output = e.target.value;
-                                setTestCases(newTcs);
-                              }}
-                              placeholder="e.g. 15"
-                              required
-                            />
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            <input
-                              type="checkbox"
-                              id={`is-public-${index}`}
-                              checked={tc.is_public}
-                              onChange={(e) => {
-                                const newTcs = [...testCases];
-                                newTcs[index].is_public = e.target.checked;
-                                setTestCases(newTcs);
-                              }}
-                            />
-                            <label htmlFor={`is-public-${index}`} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                              Public (visible to students during exam)
-                            </label>
-                          </div>
-                        </div>
-                      ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Option A</label>
+                      <input type="text" className="form-input" value={questionForm.option_a} onChange={(e) => setQuestionForm({ ...questionForm, option_a: e.target.value })} required />
                     </div>
-                  )}
+                    <div className="form-group">
+                      <label className="form-label">Option B</label>
+                      <input type="text" className="form-input" value={questionForm.option_b} onChange={(e) => setQuestionForm({ ...questionForm, option_b: e.target.value })} required />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Option C</label>
+                      <input type="text" className="form-input" value={questionForm.option_c} onChange={(e) => setQuestionForm({ ...questionForm, option_c: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Option D</label>
+                      <input type="text" className="form-input" value={questionForm.option_d} onChange={(e) => setQuestionForm({ ...questionForm, option_d: e.target.value })} required />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Correct Option</label>
+                    <select className="form-input" value={questionForm.correct_option} onChange={(e) => setQuestionForm({ ...questionForm, correct_option: e.target.value })}>
+                      <option value="A">Option A</option>
+                      <option value="B">Option B</option>
+                      <option value="C">Option C</option>
+                      <option value="D">Option D</option>
+                    </select>
+                  </div>
 
                   <div className="form-group">
                     <label className="form-label">Marks</label>
@@ -1826,7 +1727,7 @@ function AdminDashboard() {
           <div className="glass-card modal-box" style={{ maxWidth: '800px', width: '90%', maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.75rem' }}>
               <div>
-                <h3 className="modal-title" style={{ margin: 0 }}>Code Answers Submissions</h3>
+                <h3 className="modal-title" style={{ margin: 0 }}>Candidate Answers Sheet</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   {activeResultAnswers.student.name} ({activeResultAnswers.student.roll_number})
                 </p>
@@ -1838,27 +1739,51 @@ function AdminDashboard() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {activeResultAnswers.answers.length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>No code submissions recorded for this exam.</p>
+                <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>No answers recorded for this exam.</p>
               ) : (
-                activeResultAnswers.answers.map((answer, index) => (
-                  <div key={answer.id} style={{ borderBottom: index < activeResultAnswers.answers.length - 1 ? '1px solid var(--border-glass)' : 'none', paddingBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Question {index + 1} ({answer.question_type})</span>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        {answer.question_type === 'PROGRAM' && answer.language && (
-                          <span className="badge badge-success" style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676', border: '1px solid rgba(0, 230, 118, 0.2)', textTransform: 'uppercase', fontSize: '0.78rem' }}>
-                            💻 {answer.language}
+                activeResultAnswers.answers.map((answer, index) => {
+                  const isCorrect = answer.answer_text && answer.correct_option && answer.answer_text.toUpperCase() === answer.correct_option.toUpperCase();
+                  return (
+                    <div key={answer.id} style={{ borderBottom: index < activeResultAnswers.answers.length - 1 ? '1px solid var(--border-glass)' : 'none', paddingBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Question {index + 1}</span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span className={`badge ${isCorrect ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.78rem' }}>
+                            {isCorrect ? '✔ Correct' : '✘ Incorrect'}
                           </span>
-                        )}
-                        <span className="badge badge-warning">{answer.marks} Marks</span>
+                          <span className="badge badge-warning">{answer.marks} Marks</span>
+                        </div>
+                      </div>
+                      <p style={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem', marginBottom: '0.75rem', whiteSpace: 'pre-line' }}>{answer.question_text}</p>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-glass)', padding: '0.75rem', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Options</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem' }}>
+                            <div><strong>A:</strong> {answer.option_a}</div>
+                            <div><strong>B:</strong> {answer.option_b}</div>
+                            <div><strong>C:</strong> {answer.option_c}</div>
+                            <div><strong>D:</strong> {answer.option_d}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div style={{ background: isCorrect ? 'rgba(0, 230, 118, 0.05)' : 'rgba(255, 82, 82, 0.05)', border: `1px solid ${isCorrect ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 82, 82, 0.15)'}`, padding: '0.75rem', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Candidate Chosen Option</span>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isCorrect ? 'var(--success)' : 'var(--danger)' }}>
+                              Option {answer.answer_text || 'None (Unanswered)'}
+                            </div>
+                          </div>
+                          <div style={{ background: 'rgba(0, 230, 118, 0.05)', border: '1px solid rgba(0, 230, 118, 0.15)', padding: '0.75rem', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Correct Option</span>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)' }}>
+                              Option {answer.correct_option}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <p style={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem', marginBottom: '0.75rem', whiteSpace: 'pre-line' }}>{answer.question_text}</p>
-                    <pre style={{ background: '#050510', border: '1px solid var(--border-glass)', padding: '1rem', borderRadius: '8px', overflowX: 'auto', fontSize: '0.9rem', color: '#00e676', fontFamily: 'Courier New, monospace', whiteSpace: 'pre-wrap' }}>
-                      {answer.answer_text}
-                    </pre>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

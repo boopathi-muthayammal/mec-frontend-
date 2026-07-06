@@ -1,43 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const templates = {
-  javascript: `// Write your JavaScript (NodeJS) code here
-const fs = require('fs');
-
-function solve() {
-    const input = fs.readFileSync(0, 'utf-8').trim();
-    if (!input) return;
-    
-    // Implement your logic here
-    console.log("Hello World");
-}
-
-solve();`,
-  python: `# Write your Python code here
-import sys
-
-def solve():
-    # Read lines from standard input
-    lines = sys.stdin.read().splitlines()
-    if not lines:
-        return
-        
-    # Implement your logic here
-    print("Hello World")
-
-if __name__ == '__main__':
-    solve()`,
-  c: `// Write your C (GCC) code here
-#include <stdio.h>
-#include <stdlib.h>
-
-int main() {
-    // Read from standard input and implement your logic
-    // printf("Hello World\\n");
-    return 0;
-}`
-};
-
 function StudentExam({ examId }) {
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -82,15 +44,6 @@ function StudentExam({ examId }) {
 
   const hasLoadedRef = useRef(false);
 
-  // Code execution states
-  const [codeLanguages, setCodeLanguages] = useState({}); // qId -> lang
-  const [runningCode, setRunningCode] = useState(false);
-  const [runResults, setRunResults] = useState({}); // qId -> test case results array
-  const [customInputs, setCustomInputs] = useState({}); // qId -> custom stdin input
-  const [runningCustomCode, setRunningCustomCode] = useState(false);
-  const [customRunResults, setCustomRunResults] = useState({}); // qId -> custom execution result object
-  const [showCustomInput, setShowCustomInput] = useState({}); // qId -> bool
-
   useEffect(() => {
     if (!examId) {
       setError('No exam ID specified');
@@ -118,16 +71,16 @@ function StudentExam({ examId }) {
     };
   }, []);
 
-  // Auto-save answers and languages progress to localStorage
+  // Auto-save answers progress to localStorage
   useEffect(() => {
     if (isStarted && examId && !examSubmitted) {
       try {
-        localStorage.setItem(`exam_${examId}_progress`, JSON.stringify({ answers, codeLanguages }));
+        localStorage.setItem(`exam_${examId}_progress`, JSON.stringify({ answers }));
       } catch (e) {
         console.error('Error saving progress:', e);
       }
     }
-  }, [answers, codeLanguages, isStarted, examId, examSubmitted]);
+  }, [answers, isStarted, examId, examSubmitted]);
 
   // Persist warnings count to sessionStorage
   useEffect(() => {
@@ -139,22 +92,6 @@ function StudentExam({ examId }) {
       }
     }
   }, [tabSwitchCount, isStarted, examId]);
-
-  useEffect(() => {
-    if (questions && questions[currentQ] && questions[currentQ].question_type === 'PROGRAM') {
-      const qId = questions[currentQ].id;
-      // Initialize language if not set
-      if (!codeLanguages[qId]) {
-        setCodeLanguages(prev => ({ ...prev, [qId]: 'javascript' }));
-      }
-      // Seed template if answer is empty
-      const currentCode = answers[qId] || '';
-      if (!currentCode.trim()) {
-        const lang = codeLanguages[qId] || 'javascript';
-        setAnswers(prev => ({ ...prev, [qId]: templates[lang] }));
-      }
-    }
-  }, [currentQ, questions]);
 
   // Load questions and details
   const loadExamData = async () => {
@@ -172,7 +109,6 @@ function StudentExam({ examId }) {
           if (progress) {
             const parsed = JSON.parse(progress);
             if (parsed.answers) setAnswers(parsed.answers);
-            if (parsed.codeLanguages) setCodeLanguages(parsed.codeLanguages);
           }
         } catch (e) {
           console.error('Error restoring progress:', e);
@@ -323,72 +259,7 @@ function StudentExam({ examId }) {
     setAnswers((prev) => ({ ...prev, [qId]: option }));
   };
 
-  const handleTextChange = (qId, text) => {
-    setAnswers((prev) => ({ ...prev, [qId]: text }));
-  };
 
-  const handleRunCode = async (qId) => {
-    const code = answers[qId] || '';
-    if (!code.trim()) {
-      alert('Please write some code before running tests.');
-      return;
-    }
-    const lang = codeLanguages[qId] || 'javascript';
-    setRunningCode(true);
-    try {
-      const res = await fetch('/api/student/run-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: qId, code, language: lang })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setRunResults((prev) => ({ ...prev, [qId]: data.results }));
-      } else {
-        alert(data.message || 'Error running code.');
-      }
-    } catch (err) {
-      alert('Network error executing code. Please try again.');
-    } finally {
-      setRunningCode(false);
-    }
-  };
-
-  const handleRunCustomCode = async (qId) => {
-    const code = answers[qId] || '';
-    if (!code.trim()) {
-      alert('Please write some code before running custom tests.');
-      return;
-    }
-    const lang = codeLanguages[qId] || 'javascript';
-    const customInput = customInputs[qId] || '';
-    setRunningCustomCode(true);
-    setCustomRunResults((prev) => ({ ...prev, [qId]: null }));
-    try {
-      const res = await fetch('/api/student/run-custom-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language: lang, customInput })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCustomRunResults((prev) => ({
-          ...prev,
-          [qId]: {
-            status: data.status,
-            stdout: data.stdout,
-            error_message: data.error_message
-          }
-        }));
-      } else {
-        alert(data.message || 'Error running custom code.');
-      }
-    } catch (err) {
-      alert('Network error executing custom code. Please try again.');
-    } finally {
-      setRunningCustomCode(false);
-    }
-  };
 
   const submitExamManual = async () => {
     const answeredCount = Object.keys(answers).length;
@@ -609,8 +480,8 @@ function StudentExam({ examId }) {
 
   if (examSubmitted) {
     const showScorecard = evaluationResult !== null;
-    const totalScore = showScorecard ? (evaluationResult.mcq_score + evaluationResult.program_score) : 0;
-    const totalMax = showScorecard ? (evaluationResult.mcq_total + evaluationResult.program_total) : 0;
+    const totalScore = showScorecard ? evaluationResult.mcq_score : 0;
+    const totalMax = showScorecard ? evaluationResult.mcq_total : 0;
     const percent = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
     const isRecommended = percent >= 60;
     const compliancePassed = showScorecard ? (evaluationResult.tab_switches <= MAX_WARNINGS && !isAutoSubmit) : true;
@@ -645,7 +516,7 @@ function StudentExam({ examId }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
                     <span>MCQ Section</span>
@@ -653,16 +524,6 @@ function StudentExam({ examId }) {
                   </div>
                   <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
                     <div style={{ width: `${evaluationResult.mcq_total > 0 ? (evaluationResult.mcq_score / evaluationResult.mcq_total) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), var(--primary))', borderRadius: '3px' }}></div>
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Coding Section</span>
-                    <span style={{ color: '#fff', fontWeight: 700 }}>{evaluationResult.program_score} / {evaluationResult.program_total}</span>
-                  </div>
-                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
-                    <div style={{ width: `${evaluationResult.program_total > 0 ? (evaluationResult.program_score / evaluationResult.program_total) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #00e676, var(--primary))', borderRadius: '3px' }}></div>
                   </div>
                 </div>
               </div>
@@ -735,220 +596,23 @@ function StudentExam({ examId }) {
               {currentQuestion.question_text}
             </div>
 
-            {currentQuestion.question_type === 'PROGRAM' ? (
-              <div className="programming-layout">
-                {/* Left Side: Question Instructions & Test Cases */}
-                <div className="left-panel">
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Question Description</h4>
-                    <div className="question-text" style={{ fontSize: '1.05rem', lineHeight: '1.6' }}>
-                      {currentQuestion.question_text}
-                    </div>
-                  </div>
-
-                  {currentQuestion.test_cases && currentQuestion.test_cases.length > 0 && (
-                    <div>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem', color: '#fff' }}>Public Test Cases</h4>
-                      <div className="tc-grid">
-                        {currentQuestion.test_cases.filter(tc => tc.is_public).map((tc, idx) => (
-                          <div key={tc.id || idx} className="tc-row">
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Case #{idx + 1}</span>
-                            <div style={{ marginTop: '0.4rem' }}>
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Input:</span>
-                              <div className="tc-content-box">{tc.input || 'None (no stdin input)'}</div>
-                            </div>
-                            <div style={{ marginTop: '0.4rem' }}>
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Expected Output:</span>
-                              <div className="tc-content-box">{tc.expected_output}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Side: Code Editor Workspace & Test Executor */}
-                <div className="right-panel">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Select Language</label>
-                    <select
-                      className="form-input"
-                      style={{ width: '150px', padding: '0.45rem 0.75rem', fontSize: '0.88rem' }}
-                      value={codeLanguages[currentQuestion.id] || 'javascript'}
-                      onChange={(e) => {
-                        const newLang = e.target.value;
-                        setCodeLanguages({ ...codeLanguages, [currentQuestion.id]: newLang });
-                        const currentCode = answers[currentQuestion.id] || '';
-                        if (!currentCode.trim() || Object.values(templates).some(t => t.trim() === currentCode.trim())) {
-                          setAnswers(prev => ({ ...prev, [currentQuestion.id]: templates[newLang] }));
-                        }
-                      }}
-                    >
-                      <option value="javascript">JavaScript (NodeJS)</option>
-                      <option value="python">Python</option>
-                      <option value="c">C (GCC Compiler)</option>
-                    </select>
-                  </div>
-
-                  <textarea
-                    className="code-textarea"
-                    value={answers[currentQuestion.id] || ''}
-                    onChange={(e) => handleTextChange(currentQuestion.id, e.target.value)}
-                    placeholder={
-                      (codeLanguages[currentQuestion.id] || 'javascript') === 'c'
-                        ? '#include <stdio.h>\n\nint main() {\n    // read from stdin (e.g. scanf)\n    // write to stdout (e.g. printf)\n    return 0;\n}'
-                        : (codeLanguages[currentQuestion.id] || 'javascript') === 'python'
-                        ? '# read from stdin using input() or sys.stdin.read()\n# print to stdout using print()'
-                        : '// read from stdin using fs.readFileSync(0, \'utf-8\')\nconst fs = require(\'fs\');'
-                    }
-                  />
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '1rem', marginTop: '0.5rem' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={runningCode || runningCustomCode}
-                      style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem', gap: '0.5rem' }}
-                      onClick={() => handleRunCode(currentQuestion.id)}
-                    >
-                      {runningCode ? '⏳ Running Tests...' : '⚙️ Run Test Cases'}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}
-                      onClick={() => setShowCustomInput(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }))}
-                    >
-                      {showCustomInput[currentQuestion.id] ? '✕ Hide Custom Input' : '⌨️ Custom Input'}
-                    </button>
-                  </div>
-
-                  {/* Custom Input Console */}
-                  {showCustomInput[currentQuestion.id] && (
-                    <div className="glass-card" style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--border-glass)', background: 'rgba(255, 255, 255, 0.02)' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#fff' }}>Custom Test Input (stdin)</div>
-                      <textarea
-                        className="form-input"
-                        rows="3"
-                        style={{ fontFamily: 'Courier New, monospace', fontSize: '0.88rem', background: '#05050f', border: '1px solid var(--border-glass)', color: '#fff', padding: '0.5rem', width: '100%', resize: 'vertical' }}
-                        value={customInputs[currentQuestion.id] || ''}
-                        onChange={(e) => setCustomInputs({ ...customInputs, [currentQuestion.id]: e.target.value })}
-                        placeholder="Provide standard input lines here..."
-                      />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
-                          disabled={runningCustomCode}
-                          onClick={() => handleRunCustomCode(currentQuestion.id)}
-                        >
-                          {runningCustomCode ? '⏳ Executing...' : '▶️ Run Custom Code'}
-                        </button>
-                      </div>
-
-                      {customRunResults[currentQuestion.id] && (
-                        <div style={{ marginTop: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Execution Output:</span>
-                            <span className={`badge ${customRunResults[currentQuestion.id].status === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.75rem' }}>
-                              {customRunResults[currentQuestion.id].status.toUpperCase()}
-                            </span>
-                          </div>
-                          
-                          {customRunResults[currentQuestion.id].error_message ? (
-                            <div className="tc-content-box" style={{ color: 'var(--danger)', background: 'rgba(255, 82, 82, 0.08)', fontFamily: 'Courier New, monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>
-                              {customRunResults[currentQuestion.id].error_message}
-                            </div>
-                          ) : (
-                            <div className="tc-content-box" style={{ color: '#00e676', background: '#020208', fontFamily: 'Courier New, monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>
-                              {customRunResults[currentQuestion.id].stdout || '(No output printed to stdout)'}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Execution Results Console */}
-                  {runResults[currentQuestion.id] && (
-                    <div className="results-console">
-                      <div className="console-title">
-                        <span>🖥️</span> Execution Results
-                      </div>
-                      <div className="tc-grid">
-                        {runResults[currentQuestion.id].map((res, idx) => {
-                          const isPass = res.status === 'pass';
-                          const statusColor = isPass ? 'var(--success)' : 'var(--danger)';
-                          return (
-                            <div key={res.id || idx} className="tc-row" style={{ borderLeft: `4px solid ${statusColor}` }}>
-                              <div className="tc-header">
-                                <span style={{ fontWeight: 600 }}>Test Case #{idx + 1} ({res.is_public ? 'Public' : 'Hidden'})</span>
-                                <span className={`badge ${isPass ? 'badge-success' : 'badge-danger'}`}>
-                                  {res.status.toUpperCase()}
-                                </span>
-                              </div>
-
-                              {res.is_public ? (
-                                <div style={{ fontSize: '0.85rem' }}>
-                                  <div style={{ marginTop: '0.4rem' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Input:</span>
-                                    <div className="tc-content-box">{res.input || 'None'}</div>
-                                  </div>
-                                  <div style={{ marginTop: '0.4rem' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Expected Output:</span>
-                                    <div className="tc-content-box">{res.expected_output}</div>
-                                  </div>
-                                  <div style={{ marginTop: '0.4rem' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Actual Output:</span>
-                                    <div className="tc-content-box" style={{ color: isPass ? '#fff' : 'var(--danger)' }}>
-                                      {res.actual_output || '(No stdout output)'}
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                  Hidden testcase input/output details are masked for cheating prevention.
-                                </div>
-                              )}
-
-                              {res.error_message && (
-                                <div style={{ marginTop: '0.5rem' }}>
-                                  <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>Error Details:</span>
-                                  <div className="tc-content-box" style={{ color: 'var(--danger)', background: 'rgba(255, 82, 82, 0.08)' }}>
-                                    {res.error_message}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="options-grid">
-                {optionLabels.map((lbl, idx) => {
-                  const optionVal = currentQuestion[optionKeys[idx]];
-                  if (!optionVal) return null;
-                  const isSelected = answers[currentQuestion.id] === lbl;
-                  return (
-                    <button
-                      key={lbl}
-                      className={`option-button ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleOptionSelect(currentQuestion.id, lbl)}
-                    >
-                      <span className="option-letter">{lbl}</span>
-                      <span>{optionVal}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="options-grid">
+              {optionLabels.map((lbl, idx) => {
+                const optionVal = currentQuestion[optionKeys[idx]];
+                if (!optionVal) return null;
+                const isSelected = answers[currentQuestion.id] === lbl;
+                return (
+                  <button
+                    key={lbl}
+                    className={`option-button ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleOptionSelect(currentQuestion.id, lbl)}
+                  >
+                    <span className="option-letter">{lbl}</span>
+                    <span>{optionVal}</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Nav controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
