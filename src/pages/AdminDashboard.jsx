@@ -35,7 +35,7 @@ function AdminDashboard() {
   const [csvFile, setCsvFile] = useState(null);
   const [csvYear, setCsvYear] = useState(1);
   const [csvSection, setCsvSection] = useState('A');
-  const [studentMessage, setStudentMessage] = useState({ type: '', text: '' });
+  const [studentMessage, setStudentMessage] = useState({ type: '', text: '', errors: [] });
 
   // Exams Tab State
   const [exams, setExams] = useState([]);
@@ -209,7 +209,7 @@ function AdminDashboard() {
   const handleCsvUpload = async (e) => {
     e.preventDefault();
     if (!csvFile) return;
-    setStudentMessage({ type: '', text: '' });
+    setStudentMessage({ type: '', text: '', errors: [] });
 
     const formData = new FormData();
     formData.append('file', csvFile);
@@ -223,7 +223,11 @@ function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setStudentMessage({ type: 'success', text: data.message });
+        setStudentMessage({ 
+          type: 'success', 
+          text: data.message, 
+          errors: data.errors || [] 
+        });
         setCsvFile(null);
         // Reset file input element
         document.getElementById('csvFileInput').value = '';
@@ -235,10 +239,14 @@ function AdminDashboard() {
         // Load the updated list immediately
         loadStudents();
       } else {
-        setStudentMessage({ type: 'danger', text: data.message || 'CSV Upload failed.' });
+        setStudentMessage({ 
+          type: 'danger', 
+          text: data.message || 'Upload failed.', 
+          errors: data.errors || [] 
+        });
       }
     } catch (err) {
-      setStudentMessage({ type: 'danger', text: 'Error uploading CSV.' });
+      setStudentMessage({ type: 'danger', text: 'Error uploading file.', errors: [] });
     }
   };
 
@@ -726,6 +734,28 @@ function AdminDashboard() {
                 {studentMessage.text && (
                   <div className={`badge badge-${studentMessage.type}`} style={{ display: 'block', width: '100%', padding: '0.75rem', marginTop: '1.5rem', textAlign: 'center' }}>
                     {studentMessage.text}
+                  </div>
+                )}
+
+                {studentMessage.errors && studentMessage.errors.length > 0 && (
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    maxHeight: '150px', 
+                    overflowY: 'auto', 
+                    background: 'rgba(0, 0, 0, 0.2)', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)', 
+                    borderRadius: '6px', 
+                    padding: '0.75rem',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'left'
+                  }}>
+                    <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--danger)' }}>Skipped Rows / Errors:</strong>
+                    <ul style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: '1.4' }}>
+                      {studentMessage.errors.map((err, index) => (
+                        <li key={index} style={{ marginBottom: '0.25rem' }}>{err}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
