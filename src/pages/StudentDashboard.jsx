@@ -166,7 +166,16 @@ function StudentDashboard() {
                       <span>❓ {exam.question_count || '—'} Questions</span>
                     </div>
 
-                    {exam.already_taken ? (
+                    {exam.already_taken && exam.new_question_count > 0 ? (
+                      <div>
+                        <div className="badge badge-warning flex-center" style={{ padding: '0.5rem', borderRadius: '8px 8px 0 0', fontSize: '0.82rem', gap: '0.3rem' }}>
+                          ⚠️ {exam.new_question_count} New Question{exam.new_question_count > 1 ? 's' : ''} Added!
+                        </div>
+                        <button className="btn btn-success" style={{ width: '100%', justifyContent: 'center', borderRadius: '0 0 8px 8px', borderTop: 'none' }} onClick={() => openStartModal(exam.id)}>
+                          Answer New Questions →
+                        </button>
+                      </div>
+                    ) : exam.already_taken ? (
                       <div className="badge badge-success flex-center" style={{ padding: '0.65rem', borderRadius: '10px', fontSize: '0.88rem' }}>
                         Completed ✓
                       </div>

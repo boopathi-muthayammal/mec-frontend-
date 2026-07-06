@@ -14,6 +14,7 @@ function StudentExam({ examId }) {
   const [isAutoSubmit, setIsAutoSubmit] = useState(false);
   const [submitReason, setSubmitReason] = useState('');
   const [evaluationResult, setEvaluationResult] = useState(null);
+  const [isPartialRetake, setIsPartialRetake] = useState(false);
 
   // Timer States
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
@@ -115,16 +116,19 @@ function StudentExam({ examId }) {
         setExam(data.exam);
         setQuestions(data.questions);
         setTimeLeft(data.exam.duration_minutes * 60);
+        setIsPartialRetake(!!data.partial_retake);
         
-        // Restore progress if available
-        try {
-          const progress = localStorage.getItem(`exam_${examId}_progress`);
-          if (progress) {
-            const parsed = JSON.parse(progress);
-            if (parsed.answers) setAnswers(parsed.answers);
+        // Only restore progress for fresh attempts (not partial retake)
+        if (!data.partial_retake) {
+          try {
+            const progress = localStorage.getItem(`exam_${examId}_progress`);
+            if (progress) {
+              const parsed = JSON.parse(progress);
+              if (parsed.answers) setAnswers(parsed.answers);
+            }
+          } catch (e) {
+            console.error('Error restoring progress:', e);
           }
-        } catch (e) {
-          console.error('Error restoring progress:', e);
         }
       } else {
         setError(data.message || 'Cannot start exam');
@@ -397,6 +401,18 @@ function StudentExam({ examId }) {
                   {exam && exam.description || 'No guidelines description provided. Please satisfy all proctoring criteria before entering.'}
                 </p>
               </div>
+
+              {isPartialRetake && (
+                <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '12px', padding: '1rem 1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>📝</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.9rem' }}>New Questions Added — Partial Retake</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem', lineHeight: '1.5' }}>
+                      You have already submitted this exam. <strong style={{ color: '#fff' }}>Only the {questions.length} newly added question{questions.length > 1 ? 's' : ''}</strong> will be shown. Your previous answers and score are preserved and will be updated once you submit.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
                 <div>
