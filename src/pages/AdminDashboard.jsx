@@ -895,18 +895,33 @@ function AdminDashboard() {
                   <table className="custom-table">
                     <thead>
                       <tr>
+                        <th>Class Rank</th>
                         <th>Roll Number</th>
                         <th>Student Name</th>
                         <th>Attendance</th>
-                        <th>Score Details</th>
+                        <th>MCQ Score</th>
+                        <th>Coding Score</th>
+                        <th>Total Marks</th>
                         <th>Proctoring (Tab Switches)</th>
                         <th>Submit Mode</th>
-                        <th>Attended Time</th>
                       </tr>
                     </thead>
                     <tbody>
                       {classReport.map(student => (
                         <tr key={student.student_id}>
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>
+                            {!student.attended || !student.rank ? (
+                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                            ) : student.rank === 1 ? (
+                              <span style={{ color: '#ffd700' }}>🏆 #1</span>
+                            ) : student.rank === 2 ? (
+                              <span style={{ color: '#c0c0c0' }}>🥈 #2</span>
+                            ) : student.rank === 3 ? (
+                              <span style={{ color: '#cd7f32' }}>🥉 #3</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>#{student.rank}</span>
+                            )}
+                          </td>
                           <td style={{ fontWeight: 700 }}>{student.roll_number}</td>
                           <td style={{ fontWeight: 600 }}>{student.name}</td>
                           <td>
@@ -916,15 +931,27 @@ function AdminDashboard() {
                               <span className="badge badge-attendance-no">Absent</span>
                             )}
                           </td>
-                          <td style={{ fontWeight: student.attended ? 600 : 'normal' }}>
+                          <td>
                             {student.attended && student.score_details ? (
-                              <span>
-                                {student.score_details.total_score} / {student.score_details.total_possible}
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: '0.5rem', fontWeight: 'normal' }}>
-                                  (MCQ: {student.score_details.mcq_score}/{student.score_details.mcq_total}
-                                  {student.score_details.program_total > 0 ? `, Code: ${student.score_details.program_score}/${student.score_details.program_total}` : ''})
-                                </span>
-                              </span>
+                              `${student.score_details.mcq_score} / ${student.score_details.mcq_total}`
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                            )}
+                          </td>
+                          <td>
+                            {student.attended && student.score_details ? (
+                              student.score_details.program_total > 0 ? (
+                                `${student.score_details.program_score} / ${student.score_details.program_total}`
+                              ) : (
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>N/A</span>
+                              )
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: student.attended ? 700 : 'normal' }}>
+                            {student.attended && student.score_details ? (
+                              `${student.score_details.total_score} / ${student.score_details.total_possible}`
                             ) : (
                               <span style={{ color: 'var(--text-secondary)' }}>—</span>
                             )}
