@@ -561,22 +561,6 @@ function StudentExam({ examId }) {
                     {isAutoSubmit ? '🔴 DISQUALIFIED' : (!compliancePassed ? '⚠️ COMPLIANCE HOLD' : (isRecommended ? '🟢 HIGHLY RECOMMENDED' : '🟡 UNDER REVIEW'))}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Overall Match</span>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>{percent}%</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
-                    <span>MCQ Section</span>
-                    <span style={{ color: '#fff', fontWeight: 700 }}>{evaluationResult.mcq_score} / {evaluationResult.mcq_total}</span>
-                  </div>
-                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
-                    <div style={{ width: `${evaluationResult.mcq_total > 0 ? (evaluationResult.mcq_score / evaluationResult.mcq_total) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), var(--primary))', borderRadius: '3px' }}></div>
-                  </div>
-                </div>
               </div>
 
               <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
