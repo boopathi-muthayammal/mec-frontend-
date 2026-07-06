@@ -73,7 +73,7 @@ function StudentExam({ examId }) {
   const isProcessingViolationRef = useRef(false);
   const isUnloadingRef = useRef(false);
 
-  const MAX_WARNINGS = 1; // 2nd violation auto-submits
+  const MAX_WARNINGS = 3; // 4th violation auto-submits
 
   const hasLoadedRef = useRef(false);
 
