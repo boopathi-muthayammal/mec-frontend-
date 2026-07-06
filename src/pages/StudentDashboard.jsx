@@ -47,7 +47,8 @@ function StudentDashboard() {
       if (data.success && data.role === 'student') {
         setStudentUser(data.user);
         // Check if student was mid-exam when session expired
-        detectInProgressExam();
+        // Pass the current student's ID so we only resume their own exam
+        detectInProgressExam(data.user.id || data.user._id);
       } else {
         window.navigateTo('/student/login');
       }
@@ -56,9 +57,10 @@ function StudentDashboard() {
     }
   };
 
-  const detectInProgressExam = () => {
+  const detectInProgressExam = (currentStudentId) => {
     try {
       // Look for any exam_*_progress in localStorage that has isStarted=true
+      // AND belongs to the currently logged-in student (to avoid cross-account resume)
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('exam_') && key.endsWith('_progress')) {
@@ -66,6 +68,12 @@ function StudentDashboard() {
           if (!val) continue;
           const parsed = JSON.parse(val);
           if (parsed && parsed.isStarted && parsed.examId) {
+            // Only resume if the progress was saved by the same student
+            if (currentStudentId && parsed.studentId && parsed.studentId !== currentStudentId) {
+              // This progress belongs to a different student — clear it
+              try { localStorage.removeItem(key); } catch(e) {}
+              continue;
+            }
             setResumeExam({ examId: parsed.examId, questionIndex: parsed.currentQ || 0 });
             break;
           }
@@ -79,6 +87,18 @@ function StudentDashboard() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
+    // Clear all exam progress from localStorage on logout
+    // so another student logging in on the same browser won't see a stale Resume banner
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('exam_') && key.endsWith('_progress')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch (e) {}
     window.navigateTo('/student/login');
   };

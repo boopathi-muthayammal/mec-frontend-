@@ -96,13 +96,15 @@ function StudentExamInner({ examId }) {
           answers,
           currentQ,
           examId,
-          isStarted: true
+          isStarted: true,
+          // Store studentId so another user logging in on the same browser won't get a stale Resume banner
+          studentId: studentUser ? (studentUser.id || studentUser._id) : undefined
         }));
       } catch (e) {
         console.error('Error saving progress:', e);
       }
     }
-  }, [answers, currentQ, isStarted, examId, examSubmitted]);
+  }, [answers, currentQ, isStarted, examId, examSubmitted, studentUser]);
 
   // Persist warnings count to sessionStorage
   useEffect(() => {
