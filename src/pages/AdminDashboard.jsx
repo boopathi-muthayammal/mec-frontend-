@@ -48,6 +48,7 @@ function AdminDashboard() {
     exam_date: getTodayDateString()
   });
   const [selectedExam, setSelectedExam] = useState(null); // When viewing questions for an exam
+  const [editingExamId, setEditingExamId] = useState(null); // ID of the exam currently being edited
 
   // Question Management State
   const [questions, setQuestions] = useState([]);
@@ -304,18 +305,48 @@ function AdminDashboard() {
     }
   };
 
+  const startEditExam = (exam) => {
+    setEditingExamId(exam.id || exam._id);
+    setExamForm({
+      title: exam.title,
+      description: exam.description || '',
+      duration_minutes: exam.duration_minutes || 30,
+      target_years: exam.target_years || [1, 2, 3, 4],
+      target_sections: exam.target_sections || ['A', 'B', 'C', 'D', 'E'],
+      exam_date: exam.exam_date ? new Date(exam.exam_date).toISOString().substring(0, 10) : getTodayDateString()
+    });
+  };
+
+  const cancelEditExam = () => {
+    setEditingExamId(null);
+    setExamForm({
+      title: '',
+      description: '',
+      duration_minutes: 30,
+      target_years: [1, 2, 3, 4],
+      target_sections: ['A', 'B', 'C', 'D', 'E'],
+      exam_date: getTodayDateString()
+    });
+  };
+
   const handleCreateExam = async (e) => {
     e.preventDefault();
     setExamMessage({ type: '', text: '' });
     try {
-      const res = await fetch('/api/admin/exams', {
-        method: 'POST',
+      const url = editingExamId ? `/api/admin/exams/${editingExamId}` : '/api/admin/exams';
+      const method = editingExamId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(examForm)
       });
       const data = await res.json();
       if (data.success) {
-        setExamMessage({ type: 'success', text: 'Exam created successfully!' });
+        setExamMessage({ 
+          type: 'success', 
+          text: editingExamId ? 'Exam updated successfully!' : 'Exam created successfully!' 
+        });
+        setEditingExamId(null);
         setExamForm({
           title: '',
           description: '',
@@ -326,10 +357,10 @@ function AdminDashboard() {
         });
         loadExams();
       } else {
-        setExamMessage({ type: 'danger', text: data.message || 'Failed to create exam.' });
+        setExamMessage({ type: 'danger', text: data.message || 'Failed to save exam.' });
       }
     } catch (err) {
-      setExamMessage({ type: 'danger', text: 'Error creating exam.' });
+      setExamMessage({ type: 'danger', text: 'Error saving exam.' });
     }
   };
 
@@ -1186,7 +1217,7 @@ function AdminDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Create Exam Card */}
             <div className="glass-card" style={{ height: 'fit-content' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>Create Exam</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>{editingExamId ? 'Edit Exam' : 'Create Exam'}</h3>
               <form onSubmit={handleCreateExam}>
                 <div className="form-group">
                   <label className="form-label">Exam Title</label>
@@ -1281,8 +1312,13 @@ function AdminDashboard() {
                 </div>
 
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}>
-                  📝 Create Exam
+                  {editingExamId ? '💾 Save Changes' : '📝 Create Exam'}
                 </button>
+                {editingExamId && (
+                  <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }} onClick={cancelEditExam}>
+                    ❌ Cancel Edit
+                  </button>
+                )}
               </form>
 
               {examMessage.text && (
@@ -1327,6 +1363,9 @@ function AdminDashboard() {
                       </button>
                       <button className={`btn ${exam.is_active ? 'btn-secondary' : 'btn-success'}`} style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => handleToggleExam(exam.id)}>
                         {exam.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+                      </button>
+                      <button className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }} onClick={() => startEditExam(exam)}>
+                        ✏️ Edit Exam
                       </button>
                       <button className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', borderColor: 'var(--warning)', color: 'var(--warning)' }} onClick={() => handleResetExam(exam.id)}>
                         🔄 Re-exam / Reset
