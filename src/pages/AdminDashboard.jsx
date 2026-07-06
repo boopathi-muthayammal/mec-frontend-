@@ -36,6 +36,7 @@ function AdminDashboard() {
   const [csvYear, setCsvYear] = useState(1);
   const [csvSection, setCsvSection] = useState('A');
   const [studentMessage, setStudentMessage] = useState({ type: '', text: '', errors: [] });
+  const [previewStudents, setPreviewStudents] = useState([]); // In-memory student records parsed from spreadsheet
 
   // Exams Tab State
   const [exams, setExams] = useState([]);
@@ -234,44 +235,76 @@ function AdminDashboard() {
     e.preventDefault();
     if (!csvFile) return;
     setStudentMessage({ type: '', text: '', errors: [] });
+    setPreviewStudents([]);
 
     const formData = new FormData();
     formData.append('file', csvFile);
-    formData.append('year', csvYear);
-    formData.append('section', csvSection);
 
     try {
-      const res = await fetch('/api/admin/students/upload', {
+      const res = await fetch('/api/admin/students/parse', {
         method: 'POST',
         body: formData
       });
       const data = await res.json();
       if (data.success) {
+        setPreviewStudents(data.records);
         setStudentMessage({ 
           type: 'success', 
-          text: data.message, 
-          errors: data.errors || [] 
+          text: `Loaded ${data.records.length} students from ${csvFile.name} successfully! Please review, edit, or delete rows below and click Save & Synchronize.`, 
+          errors: [] 
         });
         setCsvFile(null);
-        // Reset file input element
         document.getElementById('csvFileInput').value = '';
-        
-        // Update list view filters to match target class
-        setFilterYear(csvYear.toString());
-        setFilterSection(csvSection.toUpperCase());
-        
-        // Load the updated list immediately
-        loadStudents();
       } else {
         setStudentMessage({ 
           type: 'danger', 
-          text: data.message || 'Upload failed.', 
-          errors: data.errors || [] 
+          text: data.message || 'Parsing failed.', 
+          errors: [] 
         });
       }
     } catch (err) {
-      setStudentMessage({ type: 'danger', text: 'Error uploading file.', errors: [] });
+      setStudentMessage({ type: 'danger', text: 'Error parsing file.', errors: [] });
     }
+  };
+
+  const handleSaveRoster = async () => {
+    if (previewStudents.length === 0) return;
+    setStudentMessage({ type: '', text: '', errors: [] });
+    try {
+      const res = await fetch('/api/admin/students/save-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year: csvYear,
+          section: csvSection,
+          students: previewStudents
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStudentMessage({ type: 'success', text: data.message, errors: [] });
+        setPreviewStudents([]);
+        setFilterYear(csvYear.toString());
+        setFilterSection(csvSection.toUpperCase());
+        loadStudents();
+      } else {
+        setStudentMessage({ type: 'danger', text: data.message || 'Failed to save roster.', errors: [] });
+      }
+    } catch (err) {
+      setStudentMessage({ type: 'danger', text: 'Error saving roster.', errors: [] });
+    }
+  };
+
+  const handlePreviewRowChange = (index, field, value) => {
+    setPreviewStudents(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleRemovePreviewRow = (index) => {
+    setPreviewStudents(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteStudent = (id) => {
@@ -856,6 +889,113 @@ function AdminDashboard() {
                 )}
               </div>
             </div>
+
+            {previewStudents.length > 0 && (
+              <div className="glass-card" style={{ marginTop: '1.5rem', marginBottom: '2rem', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>📋 Upload Preview & Verification</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.25rem', margin: 0 }}>
+                      Verify or edit candidate records before syncing with the database.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button className="btn btn-success" onClick={handleSaveRoster}>
+                      ✅ Save & Synchronize
+                    </button>
+                    <button className="btn btn-danger" onClick={() => setPreviewStudents([])}>
+                      ❌ Clear Preview
+                    </button>
+                  </div>
+                </div>
+
+                <div 
+                  className="badge badge-success" 
+                  style={{ 
+                    display: 'block', 
+                    padding: '0.85rem 1rem', 
+                    marginBottom: '1.5rem', 
+                    fontSize: '0.9rem', 
+                    textAlign: 'left', 
+                    fontWeight: 600,
+                    lineHeight: '1.4' 
+                  }}
+                >
+                  🟢 <strong>{previewStudents.length} students loaded in memory</strong> for target class: <strong>{csvYear}{csvYear === 1 ? 'st' : csvYear === 2 ? 'nd' : csvYear === 3 ? 'rd' : 'th'} Year - Section {csvSection}</strong>.
+                  <br />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 'normal', opacity: 0.9 }}>
+                    You can edit fields inline or remove rows using the delete button. Click <strong>Save & Synchronize</strong> to write to database.
+                  </span>
+                </div>
+
+                <div style={{ overflowX: 'auto', maxHeight: '450px', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}>
+                  <table className="table" style={{ margin: 0, minWidth: '700px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '60px', textAlign: 'center' }}>#</th>
+                        <th>Identifier (Roll/Reg No)</th>
+                        <th>Candidate Name</th>
+                        <th style={{ width: '220px' }}>Date of Birth</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewStudents.map((stud, idx) => (
+                        <tr key={idx}>
+                          <td style={{ textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>{idx + 1}</td>
+                          <td>
+                            <input 
+                              type="text" 
+                              className="form-input" 
+                              style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem', textTransform: 'uppercase' }} 
+                              value={stud.roll_number}
+                              onChange={(e) => handlePreviewRowChange(idx, 'roll_number', e.target.value.toUpperCase())}
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="text" 
+                              className="form-input" 
+                              style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem' }} 
+                              value={stud.name}
+                              onChange={(e) => handlePreviewRowChange(idx, 'name', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="date" 
+                              className="form-input" 
+                              style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.9rem' }} 
+                              value={stud.dob}
+                              onChange={(e) => handlePreviewRowChange(idx, 'dob', e.target.value)}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button 
+                              type="button"
+                              className="btn btn-danger" 
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', display: 'inline-flex', alignSelf: 'center' }}
+                              onClick={() => handleRemovePreviewRow(idx)}
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+                  <button className="btn btn-danger" style={{ padding: '0.6rem 1.5rem' }} onClick={() => setPreviewStudents([])}>
+                    ❌ Cancel
+                  </button>
+                  <button className="btn btn-success" style={{ padding: '0.6rem 1.75rem' }} onClick={handleSaveRoster}>
+                    💾 Save & Synchronize Roster
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Students List with Filter */}
             <div className="glass-card printable-area">

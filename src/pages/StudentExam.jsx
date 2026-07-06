@@ -58,9 +58,20 @@ function StudentExam({ examId }) {
   const timerIntervalRef = useRef(null);
 
   // Anti-Cheat States
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [tabSwitchCount, setTabSwitchCount] = useState(() => {
+    try {
+      // Extract exam ID from component state if available
+      const pathParts = window.location.pathname.split('/');
+      const id = examId || pathParts[pathParts.length - 1];
+      const val = sessionStorage.getItem(`exam_${id}_warnings`);
+      return val ? parseInt(val) : 0;
+    } catch (e) {
+      return 0;
+    }
+  });
   const [showWarningOverlay, setShowWarningOverlay] = useState(false);
   const isProcessingViolationRef = useRef(false);
+  const isUnloadingRef = useRef(false);
 
   const MAX_WARNINGS = 1; // 2nd violation auto-submits
 
@@ -91,6 +102,39 @@ function StudentExam({ examId }) {
     };
   }, [examId]);
 
+  // Set up unload listener to ignore reload-induced blur/visibilitychange events
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      isUnloadingRef.current = true;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Auto-save answers and languages progress to localStorage
+  useEffect(() => {
+    if (isStarted && examId && !examSubmitted) {
+      try {
+        localStorage.setItem(`exam_${examId}_progress`, JSON.stringify({ answers, codeLanguages }));
+      } catch (e) {
+        console.error('Error saving progress:', e);
+      }
+    }
+  }, [answers, codeLanguages, isStarted, examId, examSubmitted]);
+
+  // Persist warnings count to sessionStorage
+  useEffect(() => {
+    if (isStarted && examId) {
+      try {
+        sessionStorage.setItem(`exam_${examId}_warnings`, tabSwitchCount.toString());
+      } catch (e) {
+        console.error('Error saving warnings count:', e);
+      }
+    }
+  }, [tabSwitchCount, isStarted, examId]);
+
   useEffect(() => {
     if (questions && questions[currentQ] && questions[currentQ].question_type === 'PROGRAM') {
       const qId = questions[currentQ].id;
@@ -117,6 +161,17 @@ function StudentExam({ examId }) {
         setQuestions(data.questions);
         setTimeLeft(data.exam.duration_minutes * 60);
         
+        // Restore progress if available
+        try {
+          const progress = localStorage.getItem(`exam_${examId}_progress`);
+          if (progress) {
+            const parsed = JSON.parse(progress);
+            if (parsed.answers) setAnswers(parsed.answers);
+            if (parsed.codeLanguages) setCodeLanguages(parsed.codeLanguages);
+          }
+        } catch (e) {
+          console.error('Error restoring progress:', e);
+        }
       } else {
         setError(data.message || 'Cannot start exam');
       }
@@ -200,6 +255,7 @@ function StudentExam({ examId }) {
   };
 
   const handleVisibilityChange = () => {
+    if (isUnloadingRef.current) return;
     if (document.hidden && !examSubmitted) {
       isProcessingViolationRef.current = true;
       handleViolation();
@@ -210,12 +266,14 @@ function StudentExam({ examId }) {
   };
 
   const handleBlur = () => {
+    if (isUnloadingRef.current) return;
     if (!examSubmitted && !isProcessingViolationRef.current) {
       handleViolation();
     }
   };
 
   const handleFullscreenChange = () => {
+    if (isUnloadingRef.current) return;
     if (!document.fullscreenElement && !examSubmitted) {
       handleViolation();
     }
@@ -367,6 +425,12 @@ function StudentExam({ examId }) {
       const data = await res.json();
       if (data.success) {
         setEvaluationResult(data.evaluation);
+        try {
+          localStorage.removeItem(`exam_${examId}_progress`);
+          sessionStorage.removeItem(`exam_${examId}_warnings`);
+        } catch (e) {
+          console.error('Error clearing storage progress:', e);
+        }
       } else {
         alert(data.message || 'Error submitting exam');
         window.navigateTo('/student/dashboard');
