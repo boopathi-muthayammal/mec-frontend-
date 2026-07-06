@@ -293,7 +293,6 @@ function StudentExam({ examId }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           answers: answers,
-          languages: codeLanguages,
           tab_switches: tabSwitchCount + (isAuto && reason.includes('Tab') ? 1 : 0),
           auto_submitted: isAuto
         })
