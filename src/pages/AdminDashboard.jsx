@@ -73,7 +73,6 @@ function AdminDashboard() {
   const [activeResultAnswers, setActiveResultAnswers] = useState(null); // { student, answers }
   const [viewingAnswersModal, setViewingAnswersModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
-  const [fixSubmissionsLoading, setFixSubmissionsLoading] = useState(false);
 
   // Authentication & Initial Load
   useEffect(() => {
@@ -239,6 +238,7 @@ function AdminDashboard() {
     window.navigateTo('/admin/login');
   };
 
+  // ==================== OVERVIEW SECTION ====================
   const loadDashboardData = async () => {
     try {
       const res = await fetch('/api/admin/dashboard');
@@ -249,30 +249,6 @@ function AdminDashboard() {
       }
     } catch (err) {
       console.error('Error loading dashboard stats:', err);
-    }
-  };
-
-  const handleFixIncompleteSubmissions = async () => {
-    setFixSubmissionsLoading(true);
-    try {
-      const res = await fetch('/api/admin/fix-incomplete-submissions', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        let msg = data.message;
-        if (data.fixed_students && data.fixed_students.length > 0) {
-          msg += '\n\nFixed students:\n' + data.fixed_students.map(s => `• ${s.name} (${s.roll_number}) — ${s.fixed_questions} question(s) marked`).join('\n');
-        } else {
-          msg += '\n\nNo students needed fixing.';
-        }
-        alert(msg);
-        loadDashboardData();
-      } else {
-        alert('Error: ' + (data.message || 'Unknown error'));
-      }
-    } catch (err) {
-      alert('Network error running fix.');
-    } finally {
-      setFixSubmissionsLoading(false);
     }
   };
 
@@ -768,24 +744,6 @@ function AdminDashboard() {
                   <p>{stats.totalResults}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Fix Incomplete Submissions Tool */}
-            <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.04)' }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fbbf24', marginBottom: '0.25rem' }}>🔧 Fix Incomplete Submissions</div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                  Auto-submitted students with no answers for newly added questions may still see <strong style={{ color: '#fff' }}>&quot;Answer New Questions&quot;</strong>. Click to fix their records so the dashboard shows <strong style={{ color: 'var(--success)' }}>Completed ✓</strong> correctly.
-                </div>
-              </div>
-              <button
-                className="btn btn-warning"
-                style={{ padding: '0.6rem 1.4rem', fontWeight: 700, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.5)', color: '#fbbf24', opacity: fixSubmissionsLoading ? 0.6 : 1, cursor: fixSubmissionsLoading ? 'not-allowed' : 'pointer' }}
-                disabled={fixSubmissionsLoading}
-                onClick={handleFixIncompleteSubmissions}
-              >
-                {fixSubmissionsLoading ? '⏳ Fixing...' : '🔧 Run Fix Now'}
-              </button>
             </div>
 
             <div className="glass-card">
