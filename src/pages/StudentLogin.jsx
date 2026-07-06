@@ -14,7 +14,7 @@ function StudentLogin() {
           window.navigateTo('/student/dashboard');
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleSubmit = async (e) => {
@@ -71,7 +71,7 @@ function StudentLogin() {
             <input
               type="text"
               className="form-input"
-              placeholder="e.g. 22CSE101"
+              placeholder="e.g. 21CS072"
               value={rollNumber}
               onChange={(e) => setRollNumber(e.target.value)}
               style={{ textTransform: 'uppercase' }}
