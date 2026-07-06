@@ -1,5 +1,5 @@
 /* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Pacifico&display=swap');
 
 :root {
   --bg-primary: #0a0a16;
@@ -1014,16 +1014,26 @@ body {
 
 .developer-signature {
   position: fixed;
-  bottom: 1.5rem;
-  right: 2rem;
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.15em;
+  bottom: 1.2rem;
+  right: 1.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Pacifico', cursive;
+  letter-spacing: 0.06em;
   pointer-events: none;
   z-index: 99999;
   user-select: none;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-  font-family: 'Inter', system-ui, sans-serif;
-  text-transform: uppercase;
+  background: linear-gradient(90deg, #a78bfa, #f472b6, #fb923c, #facc15, #34d399, #60a5fa, #a78bfa);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: devSignatureShift 6s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.45));
+  text-transform: none;
+}
+
+@keyframes devSignatureShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
 }
