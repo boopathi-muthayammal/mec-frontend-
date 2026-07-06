@@ -71,6 +71,19 @@ function StudentExam({ examId }) {
     };
   }, []);
 
+  // Keep-alive: ping backend every 90s while exam is active to prevent Render cold starts + session loss
+  useEffect(() => {
+    if (!isStarted || examSubmitted) return;
+    const pingInterval = setInterval(async () => {
+      try {
+        await fetch('/api/auth/check-session', { credentials: 'include' });
+      } catch (e) {
+        // Silently ignore ping failures
+      }
+    }, 90000); // every 90 seconds
+    return () => clearInterval(pingInterval);
+  }, [isStarted, examSubmitted]);
+
   // Auto-save answers progress to localStorage
   useEffect(() => {
     if (isStarted && examId && !examSubmitted) {
@@ -287,34 +300,57 @@ function StudentExam({ examId }) {
     disableAntiCheat();
     exitFullscreen();
 
-    try {
-      const res = await fetch(`/api/student/exams/${examId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: answers,
-          tab_switches: tabSwitchCount + (isAuto && reason.includes('Tab') ? 1 : 0),
-          auto_submitted: isAuto
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setEvaluationResult(data.evaluation);
-        try {
-          localStorage.removeItem(`exam_${examId}_progress`);
-          sessionStorage.removeItem(`exam_${examId}_warnings`);
-        } catch (e) {
-          console.error('Error clearing storage progress:', e);
+    const payload = {
+      answers: answers,
+      tab_switches: tabSwitchCount + (isAuto && reason.includes('Tab') ? 1 : 0),
+      auto_submitted: isAuto
+    };
+
+    // Try up to 3 times with exponential backoff
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(`/api/student/exams/${examId}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEvaluationResult(data.evaluation);
+          try {
+            localStorage.removeItem(`exam_${examId}_progress`);
+            sessionStorage.removeItem(`exam_${examId}_warnings`);
+          } catch (e) {
+            console.error('Error clearing storage progress:', e);
+          }
+          return; // Success — stop retrying
+        } else {
+          // Server returned a proper error (e.g., already submitted)
+          if (res.status === 403 && data.message && data.message.includes('already submitted')) {
+            // Treat as success — they already submitted, show the dashboard
+            alert('Your exam has already been submitted.');
+            window.navigateTo('/student/dashboard');
+            return;
+          }
+          alert(data.message || 'Error submitting exam');
+          return;
         }
-      } else {
-        alert(data.message || 'Error submitting exam');
-        window.navigateTo('/student/dashboard');
+      } catch (err) {
+        console.error(`Submit attempt ${attempt} failed:`, err);
+        if (attempt < maxRetries) {
+          // Wait before retry: 2s, then 4s
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        } else {
+          // All retries exhausted — show error but DO NOT navigate away
+          alert(`Network error submitting exam (${maxRetries} attempts failed). Please check your connection. Your answers are saved — tap OK and try the Submit button again.`);
+          // Re-enable exam state so student can retry
+          setExamSubmitted(false);
+        }
       }
-    } catch (err) {
-      alert('Network error submitting exam. Please check connection.');
-      window.navigateTo('/student/dashboard');
     }
   };
+
 
   if (loading) {
     return (
