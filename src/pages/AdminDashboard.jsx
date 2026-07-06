@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('overview'); // overview, students, exams
+  const [activeTab, setActiveTab] = useState('overview'); // overview, students, exams, reports
   const [adminUser, setAdminUser] = useState(null);
+
+  // Reports Tab State
+  const [reportsYear, setReportsYear] = useState(1);
+  const [reportsSection, setReportsSection] = useState('A');
+  const [reportsExamId, setReportsExamId] = useState('');
+  const [classReport, setClassReport] = useState([]);
+  const [reportExamTitle, setReportExamTitle] = useState('');
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsMessage, setReportsMessage] = useState('');
+
   
   // Overview Stats
   const [stats, setStats] = useState({ totalExams: 0, totalStudents: 0, totalResults: 0 });
@@ -49,6 +59,7 @@ function AdminDashboard() {
   // Student Program Answer State
   const [activeResultAnswers, setActiveResultAnswers] = useState(null); // { student, answers }
   const [viewingAnswersModal, setViewingAnswersModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // Authentication & Initial Load
   useEffect(() => {
@@ -62,8 +73,52 @@ function AdminDashboard() {
       loadStudents();
     } else if (activeTab === 'exams') {
       loadExams();
+    } else if (activeTab === 'reports') {
+      loadExams();
     }
   }, [activeTab, filterYear, filterSection]);
+
+  useEffect(() => {
+    if (activeTab === 'reports' && reportsExamId && reportsYear && reportsSection) {
+      loadClassReport();
+    }
+  }, [activeTab, reportsExamId, reportsYear, reportsSection]);
+
+  const loadClassReport = async () => {
+    if (!reportsExamId || !reportsYear || !reportsSection) return;
+    setReportsLoading(true);
+    setReportsMessage('');
+    try {
+      const res = await fetch(`/api/admin/results/class-report?exam_id=${reportsExamId}&year=${reportsYear}&section=${reportsSection}`);
+      const data = await res.json();
+      if (data.success) {
+        setClassReport(data.report);
+        setReportExamTitle(data.exam_title);
+      } else {
+        setReportsMessage(data.message || 'Failed to fetch report.');
+        setClassReport([]);
+      }
+    } catch (err) {
+      console.error('Error loading report:', err);
+      setReportsMessage('Error loading report data.');
+      setClassReport([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
 
   const checkSession = async () => {
     try {
@@ -171,17 +226,22 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteStudent = async (id) => {
-    if (!confirm('Are you sure you want to delete this student? All their results and answers will be deleted.')) return;
-    try {
-      const res = await fetch(`/api/admin/students/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        loadStudents();
+  const handleDeleteStudent = (id) => {
+    showConfirm(
+      'Delete Student?',
+      'Are you sure you want to delete this student? All their results and answers will be permanently removed.',
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/students/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            loadStudents();
+          }
+        } catch (err) {
+          console.error('Error deleting student:', err);
+        }
       }
-    } catch (err) {
-      console.error('Error deleting student:', err);
-    }
+    );
   };
 
   // ==================== EXAMS SECTION ====================
@@ -240,20 +300,25 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteExam = async (id) => {
-    if (!confirm('Are you sure you want to delete this exam? All questions, answers and results will be permanently removed.')) return;
-    try {
-      const res = await fetch(`/api/admin/exams/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        loadExams();
-        if (selectedExam && selectedExam.id === id) {
-          setSelectedExam(null);
+  const handleDeleteExam = (id) => {
+    showConfirm(
+      'Delete Exam?',
+      'Are you sure you want to delete this exam? All questions, answers and results will be permanently removed.',
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/exams/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            loadExams();
+            if (selectedExam && selectedExam.id === id) {
+              setSelectedExam(null);
+            }
+          }
+        } catch (err) {
+          console.error('Error deleting exam:', err);
         }
       }
-    } catch (err) {
-      console.error('Error deleting exam:', err);
-    }
+    );
   };
 
   // ==================== QUESTIONS SECTION ====================
@@ -336,17 +401,22 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteQuestion = async (id) => {
-    if (!confirm('Are you sure you want to delete this question?')) return;
-    try {
-      const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        loadExamDetails(selectedExam);
+  const handleDeleteQuestion = (id) => {
+    showConfirm(
+      'Delete Question?',
+      'Are you sure you want to delete this question? This action cannot be undone.',
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            loadExamDetails(selectedExam);
+          }
+        } catch (err) {
+          console.error('Error deleting question:', err);
+        }
       }
-    } catch (err) {
-      console.error('Error deleting question:', err);
-    }
+    );
   };
 
   // ==================== VIEW STUDENT CODE SUBMISSIONS ====================
@@ -386,7 +456,7 @@ function AdminDashboard() {
 
       <div className="container">
         {/* Tab Switching Navigation */}
-        <div className="tabs-nav">
+        <div className="tabs-nav no-print">
           <button className={`tab-btn ${activeTab === 'overview' && !selectedExam ? 'active' : ''}`} onClick={() => { setActiveTab('overview'); setSelectedExam(null); }}>
             📊 Overview
           </button>
@@ -396,7 +466,11 @@ function AdminDashboard() {
           <button className={`tab-btn ${activeTab === 'exams' || selectedExam ? 'active' : ''}`} onClick={() => { setActiveTab('exams'); }}>
             📝 Exams {selectedExam && `> ${selectedExam.title}`}
           </button>
+          <button className={`tab-btn ${activeTab === 'reports' && !selectedExam ? 'active' : ''}`} onClick={() => { setActiveTab('reports'); setSelectedExam(null); }}>
+            📈 Reports
+          </button>
         </div>
+
 
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && !selectedExam && (
@@ -435,6 +509,7 @@ function AdminDashboard() {
                       <th>Roll Number</th>
                       <th>Exam</th>
                       <th>MCQ Score</th>
+                      <th>Coding Score</th>
                       <th>Tabs Switched</th>
                       <th>Status</th>
                       <th>Submitted At</th>
@@ -444,7 +519,7 @@ function AdminDashboard() {
                   <tbody>
                     {recentResults.length === 0 ? (
                       <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
+                        <td colSpan="9" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
                           No results submitted yet.
                         </td>
                       </tr>
@@ -455,6 +530,7 @@ function AdminDashboard() {
                           <td>{r.roll_number}</td>
                           <td>{r.exam_title}</td>
                           <td>{r.mcq_score} / {r.mcq_total}</td>
+                          <td>{r.program_total > 0 ? `${r.program_score} / ${r.program_total}` : 'N/A'}</td>
                           <td style={{ color: r.tab_switches > 0 ? 'var(--danger)' : 'inherit', fontWeight: r.tab_switches > 0 ? 700 : 'normal' }}>
                             {r.tab_switches}
                           </td>
@@ -685,7 +761,212 @@ function AdminDashboard() {
           </div>
         )}
 
+        {/* REPORTS TAB */}
+        {activeTab === 'reports' && !selectedExam && (
+          <div>
+            <div className="glass-card report-filters-bar no-print">
+              <div style={{ flex: 1, display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div className="form-group" style={{ marginBottom: 0, minWidth: '150px' }}>
+                  <label className="form-label">Year</label>
+                  <select
+                    className="form-input"
+                    value={reportsYear}
+                    onChange={(e) => setReportsYear(parseInt(e.target.value))}
+                  >
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0, minWidth: '120px' }}>
+                  <label className="form-label">Section</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={reportsSection}
+                    onChange={(e) => setReportsSection(e.target.value.toUpperCase())}
+                    placeholder="e.g. A"
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '220px' }}>
+                  <label className="form-label">Exam Topic</label>
+                  <select
+                    className="form-input"
+                    value={reportsExamId}
+                    onChange={(e) => setReportsExamId(e.target.value)}
+                  >
+                    <option value="">-- Choose Exam Topic --</option>
+                    {exams.map(exam => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {classReport.length > 0 && (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => window.print()}
+                  style={{ alignSelf: 'flex-end', height: '46px' }}
+                >
+                  🖨️ Print Report
+                </button>
+              )}
+            </div>
+
+            {/* Print Header (Only visible when printing) */}
+            {reportsExamId && (
+              <div className="print-only" style={{ borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
+                <h1 style={{ margin: 0 }}>EXAMGUARD PORTAL REPORT</h1>
+                <h2 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '16pt' }}>Class Exam Report: {reportExamTitle}</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', fontSize: '10pt', color: '#444' }}>
+                  <div><strong>Year:</strong> {reportsYear} | <strong>Section:</strong> {reportsSection}</div>
+                  <div style={{ textAlign: 'right' }}><strong>Printed On:</strong> {new Date().toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+
+            {!reportsExamId ? (
+              <div className="glass-card flex-center" style={{ padding: '4rem', flexDirection: 'column', color: 'var(--text-secondary)' }}>
+                <span>📑</span>
+                <p style={{ marginTop: '0.5rem' }}>Please select an Exam Topic, Year, and Section to generate report.</p>
+              </div>
+            ) : reportsLoading ? (
+              <div className="glass-card flex-center" style={{ padding: '4rem' }}>
+                <span className="text-gradient" style={{ fontWeight: 600 }}>Loading class report...</span>
+              </div>
+            ) : reportsMessage ? (
+              <div className="glass-card flex-center" style={{ padding: '4rem', color: 'var(--danger)' }}>
+                <p>{reportsMessage}</p>
+              </div>
+            ) : classReport.length === 0 ? (
+              <div className="glass-card flex-center" style={{ padding: '4rem', flexDirection: 'column', color: 'var(--text-secondary)' }}>
+                <span>👥</span>
+                <p style={{ marginTop: '0.5rem' }}>No students found in Year {reportsYear} Section {reportsSection}.</p>
+              </div>
+            ) : (
+              <div className="glass-card">
+                {/* Screen Header Info */}
+                <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+                      Report: <span className="text-gradient">{reportExamTitle}</span>
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.25rem' }}>
+                      Year {reportsYear} - Section {reportsSection} | {classReport.length} Students Total
+                    </p>
+                  </div>
+                </div>
+
+                {/* Summary boxes */}
+                <div className="report-summary-cards">
+                  <div className="report-summary-card">
+                    <h4>Total Strength</h4>
+                    <p>{classReport.length}</p>
+                  </div>
+                  <div className="report-summary-card">
+                    <h4>Attended</h4>
+                    <p style={{ color: 'var(--success)' }}>
+                      {classReport.filter(s => s.attended).length}
+                    </p>
+                  </div>
+                  <div className="report-summary-card">
+                    <h4>Absent</h4>
+                    <p style={{ color: 'var(--danger)' }}>
+                      {classReport.filter(s => !s.attended).length}
+                    </p>
+                  </div>
+                  <div className="report-summary-card">
+                    <h4>Auto Submitted</h4>
+                    <p style={{ color: 'var(--warning)' }}>
+                      {classReport.filter(s => s.attended && s.auto_submitted).length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Main Report Table */}
+                <div className="table-wrapper">
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Roll Number</th>
+                        <th>Student Name</th>
+                        <th>Attendance</th>
+                        <th>Score Details</th>
+                        <th>Proctoring (Tab Switches)</th>
+                        <th>Submit Mode</th>
+                        <th>Attended Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classReport.map(student => (
+                        <tr key={student.student_id}>
+                          <td style={{ fontWeight: 700 }}>{student.roll_number}</td>
+                          <td style={{ fontWeight: 600 }}>{student.name}</td>
+                          <td>
+                            {student.attended ? (
+                              <span className="badge badge-attendance-yes">Attended</span>
+                            ) : (
+                              <span className="badge badge-attendance-no">Absent</span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: student.attended ? 600 : 'normal' }}>
+                            {student.attended && student.score_details ? (
+                              <span>
+                                {student.score_details.total_score} / {student.score_details.total_possible}
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: '0.5rem', fontWeight: 'normal' }}>
+                                  (MCQ: {student.score_details.mcq_score}/{student.score_details.mcq_total}
+                                  {student.score_details.program_total > 0 ? `, Code: ${student.score_details.program_score}/${student.score_details.program_total}` : ''})
+                                </span>
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                            )}
+                          </td>
+                          <td 
+                            style={{ 
+                              color: student.attended && student.tab_switches > 0 ? 'var(--danger)' : 'inherit', 
+                              fontWeight: student.attended && student.tab_switches > 0 ? 700 : 'normal' 
+                            }}
+                          >
+                            {student.attended ? `${student.tab_switches} switches` : '—'}
+                          </td>
+                          <td>
+                            {student.attended ? (
+                              student.auto_submitted ? (
+                                <span className="badge badge-danger">⚠️ Auto Submit</span>
+                              ) : (
+                                <span className="badge badge-success">✅ Manual</span>
+                              )
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            {student.attended && student.submitted_at ? (
+                              new Date(student.submitted_at).toLocaleString()
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* EXAMS LISTING TAB */}
+
         {activeTab === 'exams' && !selectedExam && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Create Exam Card */}
@@ -1092,7 +1373,14 @@ function AdminDashboard() {
                   <div key={answer.id} style={{ borderBottom: index < activeResultAnswers.answers.length - 1 ? '1px solid var(--border-glass)' : 'none', paddingBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Question {index + 1} ({answer.question_type})</span>
-                      <span className="badge badge-warning">{answer.marks} Marks</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {answer.question_type === 'PROGRAM' && answer.language && (
+                          <span className="badge badge-success" style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676', border: '1px solid rgba(0, 230, 118, 0.2)', textTransform: 'uppercase', fontSize: '0.78rem' }}>
+                            💻 {answer.language}
+                          </span>
+                        )}
+                        <span className="badge badge-warning">{answer.marks} Marks</span>
+                      </div>
                     </div>
                     <p style={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem', marginBottom: '0.75rem', whiteSpace: 'pre-line' }}>{answer.question_text}</p>
                     <pre style={{ background: '#050510', border: '1px solid var(--border-glass)', padding: '1rem', borderRadius: '8px', overflowX: 'auto', fontSize: '0.9rem', color: '#00e676', fontFamily: 'Courier New, monospace', whiteSpace: 'pre-wrap' }}>
@@ -1101,6 +1389,27 @@ function AdminDashboard() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM CONFIRMATION MODAL */}
+      {confirmModal.isOpen && (
+        <div className="modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+          <div className="glass-card modal-box" style={{ maxWidth: '450px', width: '90%', padding: '2rem', textAlign: 'center', animation: 'scaleIn 0.3s ease-out' }} onClick={(e) => e.stopPropagation()}>
+            <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}>⚠️</span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '0.75rem' }}>{confirmModal.title}</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: '1.5', marginBottom: '1.75rem' }}>
+              {confirmModal.message}
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" style={{ padding: '0.55rem 1.5rem' }} onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" style={{ padding: '0.55rem 1.5rem' }} onClick={confirmModal.onConfirm}>
+                Confirm Delete
+              </button>
             </div>
           </div>
         </div>

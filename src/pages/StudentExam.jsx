@@ -1,5 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+const templates = {
+  javascript: `// Write your JavaScript (NodeJS) code here
+const fs = require('fs');
+
+function solve() {
+    const input = fs.readFileSync(0, 'utf-8').trim();
+    if (!input) return;
+    
+    // Implement your logic here
+    console.log("Hello World");
+}
+
+solve();`,
+  python: `# Write your Python code here
+import sys
+
+def solve():
+    # Read lines from standard input
+    lines = sys.stdin.read().splitlines()
+    if not lines:
+        return
+        
+    # Implement your logic here
+    print("Hello World")
+
+if __name__ == '__main__':
+    solve()`,
+  c: `// Write your C (GCC) code here
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    // Read from standard input and implement your logic
+    // printf("Hello World\\n");
+    return 0;
+}`
+};
+
 function StudentExam({ examId }) {
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -9,9 +47,11 @@ function StudentExam({ examId }) {
   // Exam States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isStarted, setIsStarted] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [isAutoSubmit, setIsAutoSubmit] = useState(false);
   const [submitReason, setSubmitReason] = useState('');
+  const [evaluationResult, setEvaluationResult] = useState(null);
 
   // Timer States
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
@@ -30,6 +70,10 @@ function StudentExam({ examId }) {
   const [codeLanguages, setCodeLanguages] = useState({}); // qId -> lang
   const [runningCode, setRunningCode] = useState(false);
   const [runResults, setRunResults] = useState({}); // qId -> test case results array
+  const [customInputs, setCustomInputs] = useState({}); // qId -> custom stdin input
+  const [runningCustomCode, setRunningCustomCode] = useState(false);
+  const [customRunResults, setCustomRunResults] = useState({}); // qId -> custom execution result object
+  const [showCustomInput, setShowCustomInput] = useState({}); // qId -> bool
 
   useEffect(() => {
     if (!examId) {
@@ -47,6 +91,22 @@ function StudentExam({ examId }) {
     };
   }, [examId]);
 
+  useEffect(() => {
+    if (questions && questions[currentQ] && questions[currentQ].question_type === 'PROGRAM') {
+      const qId = questions[currentQ].id;
+      // Initialize language if not set
+      if (!codeLanguages[qId]) {
+        setCodeLanguages(prev => ({ ...prev, [qId]: 'javascript' }));
+      }
+      // Seed template if answer is empty
+      const currentCode = answers[qId] || '';
+      if (!currentCode.trim()) {
+        const lang = codeLanguages[qId] || 'javascript';
+        setAnswers(prev => ({ ...prev, [qId]: templates[lang] }));
+      }
+    }
+  }, [currentQ, questions]);
+
   // Load questions and details
   const loadExamData = async () => {
     try {
@@ -57,10 +117,6 @@ function StudentExam({ examId }) {
         setQuestions(data.questions);
         setTimeLeft(data.exam.duration_minutes * 60);
         
-        // Start countdown and enable security
-        startTimer(data.exam.duration_minutes * 60);
-        enableAntiCheat();
-        requestFullscreen();
       } else {
         setError(data.message || 'Cannot start exam');
       }
@@ -69,6 +125,13 @@ function StudentExam({ examId }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartExam = () => {
+    requestFullscreen();
+    startTimer(timeLeft);
+    enableAntiCheat();
+    setIsStarted(true);
   };
 
   // Timer logic
@@ -228,6 +291,42 @@ function StudentExam({ examId }) {
     }
   };
 
+  const handleRunCustomCode = async (qId) => {
+    const code = answers[qId] || '';
+    if (!code.trim()) {
+      alert('Please write some code before running custom tests.');
+      return;
+    }
+    const lang = codeLanguages[qId] || 'javascript';
+    const customInput = customInputs[qId] || '';
+    setRunningCustomCode(true);
+    setCustomRunResults((prev) => ({ ...prev, [qId]: null }));
+    try {
+      const res = await fetch('/api/student/run-custom-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language: lang, customInput })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomRunResults((prev) => ({
+          ...prev,
+          [qId]: {
+            status: data.status,
+            stdout: data.stdout,
+            error_message: data.error_message
+          }
+        }));
+      } else {
+        alert(data.message || 'Error running custom code.');
+      }
+    } catch (err) {
+      alert('Network error executing custom code. Please try again.');
+    } finally {
+      setRunningCustomCode(false);
+    }
+  };
+
   const submitExamManual = async () => {
     const answeredCount = Object.keys(answers).length;
     const totalCount = questions.length;
@@ -260,12 +359,15 @@ function StudentExam({ examId }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           answers: answers,
+          languages: codeLanguages,
           tab_switches: tabSwitchCount + (isAuto && reason.includes('Tab') ? 1 : 0),
           auto_submitted: isAuto
         })
       });
       const data = await res.json();
-      if (!data.success) {
+      if (data.success) {
+        setEvaluationResult(data.evaluation);
+      } else {
         alert(data.message || 'Error submitting exam');
         window.navigateTo('/student/dashboard');
       }
@@ -295,22 +397,130 @@ function StudentExam({ examId }) {
     );
   }
 
-  if (examSubmitted) {
+  if (!isStarted) {
     return (
       <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem' }}>
-        <div className="glass-card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center', padding: '3rem', animation: 'scaleIn 0.5s ease-out' }}>
+        <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '2.5rem', border: '1px solid var(--border-glass)', borderRadius: '16px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '3.5rem' }}>🛡️</span>
+            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>ExamGuard Secure Environment</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>Technical Round Assessment: <strong>{exam && exam.title}</strong></p>
+          </div>
+
+          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-glass)', borderRadius: '12px', padding: '1.25rem', marginBottom: '2rem' }}>
+            <h4 style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff', marginBottom: '0.75rem' }}>🚨 Mandatory Compliance Rules:</h4>
+            <ul style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <li>This examination uses <strong>Strict Fullscreen Proctoring</strong>.</li>
+              <li>Leaving fullscreen mode or switching tabs will log a security violation.</li>
+              <li>A maximum of <strong>1 warning</strong> is permitted. A second violation will result in <strong>automatic exam submission</strong>.</li>
+              <li>Right-clicking, copying, pasting, or standard developer key shortcuts are strictly disabled.</li>
+              <li>Ensure your internet connection is stable before proceeding.</li>
+            </ul>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              ⏱️ Duration: <strong>{exam && exam.duration_minutes} Minutes</strong> &nbsp;|&nbsp; ❓ Total Questions: <strong>{questions.length}</strong>
+            </div>
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '1rem' }} onClick={handleStartExam}>
+              🔒 Enter Fullscreen & Start Technical Round
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (examSubmitted) {
+    const showScorecard = evaluationResult !== null;
+    const totalScore = showScorecard ? (evaluationResult.mcq_score + evaluationResult.program_score) : 0;
+    const totalMax = showScorecard ? (evaluationResult.mcq_total + evaluationResult.program_total) : 0;
+    const percent = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+    const isRecommended = percent >= 60;
+    const compliancePassed = showScorecard ? (evaluationResult.tab_switches <= MAX_WARNINGS && !isAutoSubmit) : true;
+
+    return (
+      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem' }}>
+        <div className="glass-card" style={{ maxWidth: '650px', width: '100%', padding: '2.5rem', border: '1px solid var(--border-glass)', borderRadius: '16px', animation: 'scaleIn 0.5s ease-out' }}>
           {isAutoSubmit && (
-            <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none', fontSize: '0.85rem' }}>
+            <div className="badge badge-danger" style={{ display: 'block', padding: '0.85rem', marginBottom: '1.5rem', textTransform: 'none', fontSize: '0.88rem', textAlign: 'center' }}>
               ⚠️ {submitReason || 'Exam was auto-submitted due to a security violation.'}
             </div>
           )}
-          <span style={{ fontSize: '4rem', display: 'block', marginBottom: '1rem' }}>✅</span>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Exam Submitted Successfully!</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-            Your responses have been securely encrypted and stored in our database. You can return to your student dashboard now.
-          </p>
-          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => window.navigateTo('/student/dashboard')}>
-            Return to Dashboard
+
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <span style={{ fontSize: '3.5rem', display: 'block', marginBottom: '0.5rem' }}>🏆</span>
+            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>Technical Round Completed</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>Your responses have been evaluated and recorded securely.</p>
+          </div>
+
+          {showScorecard ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 255, 255, 0.02)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Assessment Verdict</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: isRecommended && compliancePassed ? 'var(--success)' : 'var(--warning)', marginTop: '0.2rem' }}>
+                    {isAutoSubmit ? '🔴 DISQUALIFIED' : (!compliancePassed ? '⚠️ COMPLIANCE HOLD' : (isRecommended ? '🟢 HIGHLY RECOMMENDED' : '🟡 UNDER REVIEW'))}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Overall Match</span>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>{percent}%</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>MCQ Section</span>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{evaluationResult.mcq_score} / {evaluationResult.mcq_total}</span>
+                  </div>
+                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
+                    <div style={{ width: `${evaluationResult.mcq_total > 0 ? (evaluationResult.mcq_score / evaluationResult.mcq_total) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), var(--primary))', borderRadius: '3px' }}></div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Coding Section</span>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{evaluationResult.program_score} / {evaluationResult.program_total}</span>
+                  </div>
+                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
+                    <div style={{ width: `${evaluationResult.program_total > 0 ? (evaluationResult.program_score / evaluationResult.program_total) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #00e676, var(--primary))', borderRadius: '3px' }}></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
+                <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem' }}>🛡️ Compliance Auditing Summary:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Proctoring Violations Detected:</span>
+                    <span style={{ fontWeight: 700, color: evaluationResult.tab_switches > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                      {evaluationResult.tab_switches} switch(es)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Anti-Cheating Environment Status:</span>
+                    <span style={{ fontWeight: 700, color: compliancePassed ? 'var(--success)' : 'var(--danger)' }}>
+                      {compliancePassed ? 'Verified Compliance ✔' : 'Security Flagged ✘'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Execution Security Log:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--success)' }}>Sandboxed (Secure)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem', fontSize: '0.95rem' }}>
+              <p>Evaluating answers and compiling test reports...</p>
+            </div>
+          )}
+
+          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.8rem 1.5rem', fontWeight: 700 }} onClick={() => window.navigateTo('/student/dashboard')}>
+            Return to Student Dashboard
           </button>
         </div>
       </div>
@@ -390,7 +600,14 @@ function StudentExam({ examId }) {
                       className="form-input"
                       style={{ width: '150px', padding: '0.45rem 0.75rem', fontSize: '0.88rem' }}
                       value={codeLanguages[currentQuestion.id] || 'javascript'}
-                      onChange={(e) => setCodeLanguages({ ...codeLanguages, [currentQuestion.id]: e.target.value })}
+                      onChange={(e) => {
+                        const newLang = e.target.value;
+                        setCodeLanguages({ ...codeLanguages, [currentQuestion.id]: newLang });
+                        const currentCode = answers[currentQuestion.id] || '';
+                        if (!currentCode.trim() || Object.values(templates).some(t => t.trim() === currentCode.trim())) {
+                          setAnswers(prev => ({ ...prev, [currentQuestion.id]: templates[newLang] }));
+                        }
+                      }}
                     >
                       <option value="javascript">JavaScript (NodeJS)</option>
                       <option value="python">Python</option>
@@ -411,17 +628,73 @@ function StudentExam({ examId }) {
                     }
                   />
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '1rem', marginTop: '0.5rem' }}>
                     <button
                       type="button"
-                      className="btn btn-secondary"
-                      disabled={runningCode}
+                      className="btn btn-primary"
+                      disabled={runningCode || runningCustomCode}
                       style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem', gap: '0.5rem' }}
                       onClick={() => handleRunCode(currentQuestion.id)}
                     >
-                      {runningCode ? '⏳ Running Tests...' : '⚙️ Run & Test Code'}
+                      {runningCode ? '⏳ Running Tests...' : '⚙️ Run Test Cases'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}
+                      onClick={() => setShowCustomInput(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }))}
+                    >
+                      {showCustomInput[currentQuestion.id] ? '✕ Hide Custom Input' : '⌨️ Custom Input'}
                     </button>
                   </div>
+
+                  {/* Custom Input Console */}
+                  {showCustomInput[currentQuestion.id] && (
+                    <div className="glass-card" style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--border-glass)', background: 'rgba(255, 255, 255, 0.02)' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#fff' }}>Custom Test Input (stdin)</div>
+                      <textarea
+                        className="form-input"
+                        rows="3"
+                        style={{ fontFamily: 'Courier New, monospace', fontSize: '0.88rem', background: '#05050f', border: '1px solid var(--border-glass)', color: '#fff', padding: '0.5rem', width: '100%', resize: 'vertical' }}
+                        value={customInputs[currentQuestion.id] || ''}
+                        onChange={(e) => setCustomInputs({ ...customInputs, [currentQuestion.id]: e.target.value })}
+                        placeholder="Provide standard input lines here..."
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+                          disabled={runningCustomCode}
+                          onClick={() => handleRunCustomCode(currentQuestion.id)}
+                        >
+                          {runningCustomCode ? '⏳ Executing...' : '▶️ Run Custom Code'}
+                        </button>
+                      </div>
+
+                      {customRunResults[currentQuestion.id] && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Execution Output:</span>
+                            <span className={`badge ${customRunResults[currentQuestion.id].status === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.75rem' }}>
+                              {customRunResults[currentQuestion.id].status.toUpperCase()}
+                            </span>
+                          </div>
+                          
+                          {customRunResults[currentQuestion.id].error_message ? (
+                            <div className="tc-content-box" style={{ color: 'var(--danger)', background: 'rgba(255, 82, 82, 0.08)', fontFamily: 'Courier New, monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>
+                              {customRunResults[currentQuestion.id].error_message}
+                            </div>
+                          ) : (
+                            <div className="tc-content-box" style={{ color: '#00e676', background: '#020208', fontFamily: 'Courier New, monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>
+                              {customRunResults[currentQuestion.id].stdout || '(No output printed to stdout)'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Execution Results Console */}
                   {runResults[currentQuestion.id] && (
