@@ -42,7 +42,7 @@ function StudentExam({ examId }) {
   const isProcessingViolationRef = useRef(false);
   const isUnloadingRef = useRef(false);
 
-  const MAX_WARNINGS = 3; // 4th violation auto-submits
+  const MAX_WARNINGS = 2; // 3rd violation auto-submits
 
   const hasLoadedRef = useRef(false);
 
@@ -531,7 +531,7 @@ function StudentExam({ examId }) {
                     checked={agreedToProctoring.tabSwitch}
                     onChange={(e) => setAgreedToProctoring(prev => ({ ...prev, tabSwitch: e.target.checked }))}
                   />
-                  <span>I understand that switching tabs is strictly forbidden and I have a <strong>maximum of 3 warnings</strong>. A 4th switch will auto-submit my exam.</span>
+                  <span>I understand that switching tabs is strictly forbidden and I have a <strong>maximum of 2 warnings</strong>. A 3rd switch will auto-submit my exam.</span>
                 </label>
 
                 <label style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
