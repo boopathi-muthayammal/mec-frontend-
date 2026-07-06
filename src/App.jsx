@@ -77,6 +77,7 @@ function App() {
   return (
     <>
       {renderPage()}
+      <div className="developer-signature">DEVELOPED BY P.BOOPATHI</div>
     </>
   );
 }

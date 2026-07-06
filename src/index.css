@@ -1007,7 +1007,23 @@ body {
   .global-watermark {
     display: none !important;
   }
+  .developer-signature {
+    display: none !important;
+  }
 }
 
-
-
+.developer-signature {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 2rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.15em;
+  pointer-events: none;
+  z-index: 99999;
+  user-select: none;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+  font-family: 'Inter', system-ui, sans-serif;
+  text-transform: uppercase;
+}
