@@ -74,7 +74,12 @@ function App() {
     );
   };
 
-  return <>{renderPage()}</>;
+  return (
+    <>
+      <div className="global-watermark"></div>
+      {renderPage()}
+    </>
+  );
 }
 
 export default App;
