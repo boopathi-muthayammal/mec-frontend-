@@ -1247,14 +1247,36 @@ function AdminDashboard() {
 
                 <div className="form-group" style={{ marginBottom: 0, minWidth: '120px' }}>
                   <label className="form-label">Section</label>
-                  <input
-                    type="text"
+                  <select
                     className="form-input"
-                    value={reportsSection}
-                    onChange={(e) => setReportsSection(e.target.value.toUpperCase())}
-                    placeholder="e.g. A"
-                    style={{ textTransform: 'uppercase' }}
-                  />
+                    value={['A', 'B', 'C', 'D', 'E'].includes(reportsSection) ? reportsSection : 'Custom'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'Custom') {
+                        setReportsSection('');
+                      } else {
+                        setReportsSection(val);
+                      }
+                    }}
+                  >
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                    <option value="C">Section C</option>
+                    <option value="D">Section D</option>
+                    <option value="E">Section E</option>
+                    <option value="Custom">Custom...</option>
+                  </select>
+                  {!['A', 'B', 'C', 'D', 'E'].includes(reportsSection) && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ marginTop: '0.5rem', textTransform: 'uppercase' }}
+                      placeholder="Type section..."
+                      value={reportsSection}
+                      onChange={(e) => setReportsSection(e.target.value.toUpperCase())}
+                      required
+                    />
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '220px' }}>
