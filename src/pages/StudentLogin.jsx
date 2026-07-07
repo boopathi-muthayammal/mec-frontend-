@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import LoginLoader from '../components/LoginLoader';
+import loginIm from '../loginim.jpg';
 
 function StudentLogin() {
   const [rollNumber, setRollNumber] = useState('');
@@ -53,13 +54,7 @@ function StudentLogin() {
       <div className="login-container">
         <div className="login-card glass-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <span style={{ fontSize: '3rem' }}>🛡️</span>
-          <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>
-            MEC-CSE-EXAM PORTAL
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Enter details to start your examination
-          </p>
+          <img src={loginIm} alt="MEC-CSE-EXAM PORTAL" style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }} />
         </div>
 
         {error && (
