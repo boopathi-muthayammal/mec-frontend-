@@ -291,8 +291,15 @@ function StudentExamInner({ examId }) {
   };
 
   const dismissWarning = () => {
-    setShowWarningOverlay(false);
     requestFullscreen();
+    setTimeout(() => {
+      const isFull = !!document.fullscreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement;
+      if (isFull) {
+        setShowWarningOverlay(false);
+      } else {
+        alert("Fullscreen mode is required. Please maximize your window to continue the exam.");
+      }
+    }, 300);
   };
 
   const requestFullscreen = () => {
