@@ -972,6 +972,48 @@ body {
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
+  .navbar {
+    padding: 0.75rem 1rem !important;
+  }
+  .nav-brand {
+    font-size: 1.1rem !important;
+  }
+  .nav-user {
+    gap: 0.5rem !important;
+  }
+  .nav-user span {
+    display: none !important;
+  }
+  .container {
+    padding: 1rem !important;
+  }
+  .dashboard {
+    padding-top: 5rem !important;
+  }
+  .glass-card {
+    padding: 1.25rem !important;
+  }
+  .stats-grid {
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .stat-card {
+    padding: 1.25rem !important;
+  }
+  .stat-icon {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.5rem !important;
+  }
+  .custom-table th, .custom-table td {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.85rem !important;
+  }
+  .modal-box {
+    padding: 1.25rem !important;
+    width: 95% !important;
+    max-height: 90vh !important;
+  }
   .exam-topbar {
     padding: 0.5rem 1rem !important;
     flex-direction: column !important;
