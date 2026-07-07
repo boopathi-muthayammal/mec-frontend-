@@ -468,8 +468,8 @@ function StudentExamInner({ examId }) {
     const isStartEnabled = agreedToProctoring.fullscreen && agreedToProctoring.tabSwitch && agreedToProctoring.noCheating;
 
     return (
-      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem', background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent 40%)' }}>
-        <div className="glass-card" style={{ maxWidth: '950px', width: '100%', padding: '2.5rem', border: '1px solid var(--border-glass)', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem' }}>
+        <div className="glass-card exam-instruction-card" style={{ maxWidth: '950px', width: '100%', border: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1.5rem' }}>
             <span style={{ fontSize: '3rem' }}>🛡️</span>
@@ -479,12 +479,12 @@ function StudentExamInner({ examId }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
+          <div className="exam-instruction-grid">
             {/* Left Panel - Exam Details & Checklist */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Assessment Profile</span>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', margin: '0.25rem 0' }}>{exam && exam.title}</h2>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0.25rem 0' }}>{exam && exam.title}</h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', margin: '0.5rem 0 0' }}>
                   {exam && exam.description || 'No guidelines description provided. Please satisfy all proctoring criteria before entering.'}
                 </p>
@@ -496,20 +496,20 @@ function StudentExamInner({ examId }) {
                   <div>
                     <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.9rem' }}>New Questions Added — Partial Retake</div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem', lineHeight: '1.5' }}>
-                      You have already submitted this exam. <strong style={{ color: '#fff' }}>Only the {questions.length} newly added question{questions.length > 1 ? 's' : ''}</strong> will be shown. Your previous answers and score are preserved and will be updated once you submit.
+                      You have already submitted this exam. <strong style={{ color: 'var(--text-main)' }}>Only the {questions.length} newly added question{questions.length > 1 ? 's' : ''}</strong> will be shown. Your previous answers and score are preserved and will be updated once you submit.
                     </div>
                   </div>
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(0,0,0,0.01)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
                 <div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>⏱️ Timer Duration</span>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{exam && exam.duration_minutes} Minutes</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '0.2rem' }}>{exam && exam.duration_minutes} Minutes</div>
                 </div>
                 <div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>❓ Questions Count</span>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{questions.length} Items</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '0.2rem' }}>{questions.length} Items</div>
                 </div>
               </div>
 
@@ -549,7 +549,7 @@ function StudentExamInner({ examId }) {
             </div>
 
             {/* Right Panel - Compliance Warning Details */}
-            <div style={{ background: 'rgba(255, 82, 82, 0.03)', border: '1px solid rgba(255, 82, 82, 0.15)', borderRadius: '16px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div className="exam-instruction-warning" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span>🚨</span> CRITICAL SECURITY PROTOCOLS
               </h3>
@@ -558,7 +558,7 @@ function StudentExamInner({ examId }) {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🚫</span>
                   <div>
-                    <strong style={{ color: '#fff' }}>Tab & Window Switches:</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>Tab & Window Switches:</strong>
                     <br />
                     Navigating to other apps, opening chat platforms, opening search engines, or switching tabs is fully tracked. You are only allowed 3 warning prompts. The 4th instance triggers an auto-submit.
                   </div>
@@ -567,7 +567,7 @@ function StudentExamInner({ examId }) {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🖥️</span>
                   <div>
-                    <strong style={{ color: '#fff' }}>Fullscreen Mandate:</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>Fullscreen Mandate:</strong>
                     <br />
                     The assessment must be taken in fullscreen. Do not press Escape or click away. Leaving fullscreen is treated as a security violation.
                   </div>
@@ -576,7 +576,7 @@ function StudentExamInner({ examId }) {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>⌨️</span>
                   <div>
-                    <strong style={{ color: '#fff' }}>Keyboard & Mouse Actions:</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>Keyboard & Mouse Actions:</strong>
                     <br />
                     All keys like Control, Alt, Command, F12, and print screens are blocked. Right-clicking or copy-pasting is restricted.
                   </div>
@@ -585,7 +585,7 @@ function StudentExamInner({ examId }) {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem', color: 'var(--danger)' }}>🔌</span>
                   <div>
-                    <strong style={{ color: '#fff' }}>Uninterrupted Assessment:</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>Uninterrupted Assessment:</strong>
                     <br />
                     Once you start the assessment, the timer continues. Ensure you have power backups and a robust internet connection.
                   </div>
@@ -594,17 +594,16 @@ function StudentExamInner({ examId }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+          <div className="exam-instruction-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '1.5rem', marginTop: '0.5rem', gap: '1rem' }}>
             <button 
               className="btn btn-secondary" 
-              style={{ padding: '0.8rem 1.8rem' }}
               onClick={() => window.navigateTo('/student/dashboard')}
             >
               Cancel & Exit
             </button>
             <button 
               className="btn btn-primary" 
-              style={{ padding: '0.85rem 2.2rem', fontWeight: 800, fontSize: '1rem', opacity: isStartEnabled ? 1 : 0.4, cursor: isStartEnabled ? 'pointer' : 'not-allowed' }} 
+              style={{ fontWeight: 800, fontSize: '1rem', opacity: isStartEnabled ? 1 : 0.4, cursor: isStartEnabled ? 'pointer' : 'not-allowed' }} 
               disabled={!isStartEnabled}
               onClick={handleStartExam}
             >
@@ -651,8 +650,8 @@ function StudentExamInner({ examId }) {
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
-                <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem' }}>🛡️ Compliance Auditing Summary:</h4>
+              <div style={{ background: 'rgba(0, 0, 0, 0.01)', border: '1px solid var(--border-glass)', padding: '1.25rem', borderRadius: '12px' }}>
+                <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.75rem' }}>🛡️ Compliance Auditing Summary:</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Proctoring Violations Detected:</span>

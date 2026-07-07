@@ -971,48 +971,41 @@ body {
 }
 
 /* Mobile responsive adjustments */
+.exam-instruction-card {
+  padding: 2.5rem;
+  border-radius: 20px;
+}
+.exam-instruction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 2.5rem;
+  align-items: start;
+}
+.exam-instruction-warning {
+  padding: 1.75rem;
+}
+
 @media (max-width: 768px) {
-  .navbar {
-    padding: 0.75rem 1rem !important;
+  .exam-instruction-card {
+    padding: 1.25rem !important;
+    gap: 1.25rem !important;
+    border-radius: 12px !important;
   }
-  .nav-brand {
-    font-size: 1.1rem !important;
+  .exam-instruction-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
   }
-  .nav-user {
-    gap: 0.5rem !important;
-  }
-  .nav-user span {
-    display: none !important;
-  }
-  .container {
+  .exam-instruction-warning {
     padding: 1rem !important;
   }
-  .dashboard {
-    padding-top: 5rem !important;
+  .exam-instruction-footer {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
   }
-  .glass-card {
-    padding: 1.25rem !important;
-  }
-  .stats-grid {
-    gap: 1rem !important;
-    margin-bottom: 1.5rem !important;
-  }
-  .stat-card {
-    padding: 1.25rem !important;
-  }
-  .stat-icon {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 1.5rem !important;
-  }
-  .custom-table th, .custom-table td {
-    padding: 0.75rem 0.5rem !important;
-    font-size: 0.85rem !important;
-  }
-  .modal-box {
-    padding: 1.25rem !important;
-    width: 95% !important;
-    max-height: 90vh !important;
+  .exam-instruction-footer button {
+    width: 100% !important;
+    justify-content: center !important;
   }
   .exam-topbar {
     padding: 0.5rem 1rem !important;
@@ -1073,18 +1066,28 @@ body {
 
 .developer-signature {
   position: fixed;
-  bottom: 1rem;
-  right: 1.5rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-family: var(--font-family);
-  letter-spacing: 0.08em;
+  bottom: 1.2rem;
+  right: 1.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Pacifico', cursive;
+  letter-spacing: 0.06em;
   pointer-events: none;
   z-index: 99999;
   user-select: none;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  opacity: 0.65;
+  background: linear-gradient(90deg, #a78bfa, #f472b6, #fb923c, #facc15, #34d399, #60a5fa, #a78bfa);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: devSignatureShift 6s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.45));
+  text-transform: none;
+}
+
+@keyframes devSignatureShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
 }
 
 /* Student Logged In Layout Background */

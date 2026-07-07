@@ -261,7 +261,7 @@ function StudentDashboard() {
             ) : exams.length === 0 ? (
               <div className="glass-card flex-center" style={{ padding: '4rem', flexDirection: 'column', color: 'var(--text-secondary)' }}>
                 <span style={{ fontSize: '3rem' }}>📋</span>
-                <h3 style={{ color: '#fff', marginTop: '1rem', marginBottom: '0.25rem' }}>No Exams Scheduled</h3>
+                <h3 style={{ marginTop: '1rem', marginBottom: '0.25rem' }}>No Exams Scheduled</h3>
                 <p style={{ fontSize: '0.9rem' }}>There are currently no active exams available for you.</p>
               </div>
             ) : (
@@ -318,7 +318,7 @@ function StudentDashboard() {
             ) : results.length === 0 ? (
               <div className="glass-card flex-center" style={{ padding: '4rem', flexDirection: 'column', color: 'var(--text-secondary)' }}>
                 <span style={{ fontSize: '3rem' }}>📊</span>
-                <h3 style={{ color: '#fff', marginTop: '1rem', marginBottom: '0.25rem' }}>No Submissions Yet</h3>
+                <h3 style={{ marginTop: '1rem', marginBottom: '0.25rem' }}>No Submissions Yet</h3>
                 <p style={{ fontSize: '0.9rem' }}>You have not completed any exams in this portal yet.</p>
               </div>
             ) : (
