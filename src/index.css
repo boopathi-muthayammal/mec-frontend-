@@ -416,6 +416,9 @@ body {
 .modal-box {
   width: 100%;
   max-width: 500px;
+  background: var(--bg-secondary) !important; /* Prevents background text/content from showing through the glass card */
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
   animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 .modal-title {
