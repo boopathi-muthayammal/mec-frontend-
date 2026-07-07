@@ -196,7 +196,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: linear-gradient(rgba(15, 98, 254, 0.45), rgba(10, 10, 30, 0.75)), url('./login.jpg') no-repeat center center;
+  background: url('./loginim.jpg') no-repeat center center;
   background-size: cover;
 }
 
