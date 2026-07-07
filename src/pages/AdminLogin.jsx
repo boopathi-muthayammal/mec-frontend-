@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import LoginLoader from '../components/LoginLoader';
 
 function AdminLogin() {
@@ -6,18 +6,6 @@ function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Check if session already exists
-  useEffect(() => {
-    fetch('/api/auth/check-session')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.role === 'admin') {
-          window.navigateTo('/admin/dashboard');
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,7 +44,7 @@ function AdminLogin() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <span style={{ fontSize: '3rem' }}>🛡️</span>
           <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>
-            ExamGuard Admin
+            MEC-CSE-EXAM PORTAL Admin
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
             Sign in to manage exams and students

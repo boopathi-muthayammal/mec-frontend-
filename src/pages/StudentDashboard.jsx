@@ -179,7 +179,7 @@ function StudentDashboard() {
       <nav className="navbar">
         <div className="nav-brand">
           <span>🛡️</span>
-          <span className="text-gradient">ExamGuard Portal</span>
+          <span className="text-gradient">MEC-CSE-EXAM PORTAL</span>
         </div>
         {studentUser && (
           <div className="nav-user">

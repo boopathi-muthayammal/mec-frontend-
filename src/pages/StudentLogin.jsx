@@ -55,7 +55,7 @@ function StudentLogin() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <span style={{ fontSize: '3rem' }}>🛡️</span>
           <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>
-            ExamGuard Portal
+            MEC-CSE-EXAM PORTAL
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
             Enter details to start your examination

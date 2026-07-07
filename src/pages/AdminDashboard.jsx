@@ -689,7 +689,7 @@ function AdminDashboard() {
       <nav className="navbar">
         <div className="nav-brand">
           <span>🛡️</span>
-          <span className="text-gradient">ExamGuard Admin</span>
+          <span className="text-gradient">MEC-CSE-EXAM PORTAL Admin</span>
         </div>
         {adminUser && (
           <div className="nav-user">
@@ -1288,7 +1288,7 @@ function AdminDashboard() {
             {/* Print Header (Only visible when printing) */}
             {reportsExamId && (
               <div className="print-only" style={{ borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
-                <h1 style={{ margin: 0 }}>EXAMGUARD PORTAL REPORT</h1>
+                <h1 style={{ margin: 0 }}>MEC-CSE-EXAM PORTAL REPORT</h1>
                 <h2 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '16pt' }}>Class Exam Report: {reportExamTitle}</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', fontSize: '10pt', color: '#444' }}>
                   <div><strong>Year:</strong> {reportsYear} | <strong>Section:</strong> {reportsSection}</div>

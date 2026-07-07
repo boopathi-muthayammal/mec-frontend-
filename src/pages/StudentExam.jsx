@@ -474,7 +474,7 @@ function StudentExamInner({ examId }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1.5rem' }}>
             <span style={{ fontSize: '3rem' }}>🛡️</span>
             <div>
-              <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>ExamGuard Secure Portal</h1>
+              <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>MEC-CSE-EXAM PORTAL</h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: '0.2rem 0 0' }}>Candidate Verification & Mandatory Proctoring Instructions</p>
             </div>
           </div>
@@ -794,6 +794,7 @@ function StudentExamInner({ examId }) {
             Return to Examination
           </button>
         </div>
+      )}
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirm && (
         <div className="modal-overlay" onClick={() => setShowSubmitConfirm(false)}>
