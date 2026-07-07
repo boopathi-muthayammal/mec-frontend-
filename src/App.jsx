@@ -74,11 +74,22 @@ function App() {
     );
   };
 
+  // Determine page wrapper class for styling
+  const getPageClass = () => {
+    if (currentPath === '/student/dashboard' || 
+        currentPath === '/student/dashboard.html' || 
+        currentPath === '/student/exam' || 
+        currentPath === '/student/exam.html') {
+      return 'student-logged-in-bg';
+    }
+    return '';
+  };
+
   return (
-    <>
+    <div className={getPageClass()} style={{ minHeight: '100vh' }}>
       {renderPage()}
       <div className="developer-signature">DEVELOPED BY P.BOOPATHI</div>
-    </>
+    </div>
   );
 }
 
