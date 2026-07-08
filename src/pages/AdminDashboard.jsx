@@ -1426,6 +1426,7 @@ function AdminDashboard() {
                         <th>Roll Number</th>
                         <th>Student Name</th>
                         <th>Attendance</th>
+                        <th>Live Status</th>
                         <th>Score</th>
                         <th>Proctoring (Tab Switches)</th>
                         <th>Submit Mode</th>
@@ -1457,6 +1458,16 @@ function AdminDashboard() {
                             ) : (
                               <span className="badge badge-attendance-no">Absent</span>
                             )}
+                          </td>
+                          <td>
+                            <span className="badge" style={{
+                              backgroundColor: student.exam_status === 'Completed' ? 'var(--success)' : 
+                                               student.exam_status === 'In Progress' ? 'var(--primary)' : 
+                                               '#6c757d',
+                              color: 'white'
+                            }}>
+                              {student.exam_status}
+                            </span>
                           </td>
                           <td>
                             {student.attended && student.score_details ? (
