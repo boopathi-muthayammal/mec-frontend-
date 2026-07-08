@@ -424,6 +424,26 @@ function AdminDashboard() {
     );
   };
 
+  const handleToggleBlockStudent = (id, name, isBlocked) => {
+    showConfirm(
+      isBlocked ? 'Activate Student?' : 'Deactivate Student?',
+      isBlocked 
+        ? `Are you sure you want to activate ${name}? They will be able to log in and take exams.`
+        : `Are you sure you want to deactivate ${name}? If they are currently taking an exam, they will be kicked out immediately and prevented from logging in.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/students/${id}/toggle-block`, { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            loadStudents();
+          }
+        } catch (err) {
+          console.error('Error toggling block status:', err);
+        }
+      }
+    );
+  };
+
   // ==================== EXAMS SECTION ====================
   const loadExams = async () => {
     try {
@@ -1191,6 +1211,7 @@ function AdminDashboard() {
                       <th>Section</th>
                       <th>Exams Taken</th>
                       <th>Average Score</th>
+                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -1212,6 +1233,16 @@ function AdminDashboard() {
                           <td>{student.exams_taken}</td>
                           <td style={{ fontWeight: 600 }}>{student.average_score}%</td>
                           <td>
+                            {student.is_blocked ? (
+                              <span className="badge" style={{ backgroundColor: 'var(--danger)', color: 'white' }}>Deactivated</span>
+                            ) : (
+                              <span className="badge" style={{ backgroundColor: 'var(--success)', color: 'white' }}>Active</span>
+                            )}
+                          </td>
+                          <td style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleToggleBlockStudent(student.id, student.name, student.is_blocked)}>
+                              {student.is_blocked ? '🟢 Activate' : '🔴 Deactivate'}
+                            </button>
                             <button className="btn btn-danger" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleDeleteStudent(student.id)}>
                               🗑️ Delete
                             </button>
